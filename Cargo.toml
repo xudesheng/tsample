@@ -1,0 +1,20 @@
+[package]
+name = "tsample"
+version = "0.1.0"
+authors = ["xudesheng <xudesheng@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sys-info = "*"
+reqwest = "*"
+serde = "*"
+clap = {version = "~2.27.0", features = ["yaml"]}
+toml = "0.5"
+influx_db_client = "^0.3.6"
+url = "*"
+log = "0.4"
+env_logger = "0.6"
+# pretty_env_logger = "0.2"
+ctrlc = "3.1"
