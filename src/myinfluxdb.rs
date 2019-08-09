@@ -12,7 +12,7 @@
 /// https://github.com/driftluo/InfluxDBClient-rs
 /// 
 
-#[macro_use]
+
 //extern crate influx_db_client;
 
 use influx_db_client::{Client, Points, Precision};

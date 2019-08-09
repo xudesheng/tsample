@@ -5,7 +5,7 @@ extern crate serde;
 extern crate log;
 extern crate env_logger;
 
-use env_logger::{Env};
+//use env_logger::{Env};
 use std::env;
 
 pub mod thingworxtestconfig;
@@ -122,6 +122,12 @@ fn main() ->Result<(),Box<dyn Error>>{
         }
     }).expect("Error setting Ctrl-C handler");
 
+    let mut has_servers = true;
+    let servers = match testconfig.thingworx_servers {
+        Some(servers) => servers,
+        None => {has_servers=false; vec![]},
+    };
+
     while running.load(Ordering::SeqCst){
         info!("start repeated sampling...");
         let point = sampling::sampling_repeat(&testconfig.testmachine.testid, &testconfig.testmachine.repeat_sampling);
@@ -133,15 +139,17 @@ fn main() ->Result<(),Box<dyn Error>>{
             Err(e) =>{error!("Error:{}", e);},
         }
 
-
-        for server in &testconfig.thingworx_servers {
-            let points = sampling::sampling_thingworx(server);
-            //debug!("thingworx_servers:{:?}\n", points);
-            match points {
-                Ok(mut ps) => total_points.append(&mut ps),
-                Err(e) => {info!("Error:{}", e);},
+        if has_servers {
+            for server in &servers {
+                let points = sampling::sampling_thingworx(server);
+                //debug!("thingworx_servers:{:?}\n", points);
+                match points {
+                    Ok(mut ps) => total_points.append(&mut ps),
+                    Err(e) => {info!("Error:{}", e);},
+                }
             }
         }
+        
         debug!("Total Points:{}", total_points.len());
 
         let myclient = MyInfluxClient::new(&testconfig.test_data_target);

@@ -280,7 +280,7 @@ pub struct ThingworxTestConfig{
     pub title: Option<String>,
     pub owner: Option<Owner>,
     pub testmachine: TestMachine,
-    pub thingworx_servers:Vec<ThingworxServer>,
+    pub thingworx_servers:Option<Vec<ThingworxServer>>,
     pub test_data_target: TestDataDestination,
 }
 
@@ -290,7 +290,7 @@ impl ThingworxTestConfig{
             title:Some("this is a demo.".to_string()),
             owner: Some(Owner::get_sample()),
             testmachine: TestMachine::get_sample(),
-            thingworx_servers: ThingworxServer::get_samples(),
+            thingworx_servers: Some(ThingworxServer::get_samples()),
             test_data_target: TestDataDestination::get_sample(),
         }
     }
