@@ -138,7 +138,7 @@ fn main() ->Result<(),Box<dyn Error>>{
         None => 1*60*1000,
     };
     let start = Instant::now();
-    let update = tick(Duration::from_millis(sleep-2));
+    let update = tick(Duration::from_millis(sleep-20));
     let ctrl_c = sigint_notifier().unwrap();
 
     // let sleep_duration = time::Duration::from_millis(sleep);
@@ -197,6 +197,7 @@ fn main() ->Result<(),Box<dyn Error>>{
                     Ok(()) => {},
                     Err(e) => {error!("Error: {}", e);},
                 }
+                info!("finished repeated sampling...");
             }
             recv(ctrl_c) -> _ => {
                 println!();
