@@ -81,7 +81,7 @@ fn main() ->Result<(),Box<dyn Error>>{
     if matches.is_present("export") {
         match ThingworxTestConfig::export_sample(config_file) {
             Ok(()) => {
-                debug!("Sample configuration file has been exported to:{}", config_file);
+                info!("Sample configuration file has been exported to:{}", config_file);
                 process::exit(0);
             },
             Err(e) => {
