@@ -132,7 +132,7 @@ impl ThingworxServer{
             }
     }
 
-    pub fn get_url(&self) -> Result<Url, Box<Error>> {
+    pub fn get_url(&self) -> Result<Url, Box<dyn Error>> {
         let mut url = Url::parse("http://127.0.0.1:8080/")?;
         url.set_scheme(&self.protocol).map_err(|err| println!("{:?}", err)).ok();
         url.set_host(Some(&self.host)).map_err(|err| println!("{:?}", err)).ok();
@@ -145,11 +145,11 @@ impl ThingworxServer{
     pub fn get_sample() -> ThingworxServer{
         ThingworxServer{
             alias: Some("platform_1".to_string()),
-            host: "twx85.desheng.io".to_string(),
+            host: "xxx85.desheng.io".to_string(),
             port: 443,
             protocol: "https".to_string(),
             application: Some("Thingworx".to_string()),
-            app_key: "937230ce-780c-4229-b886-2d3d31fc1302".to_string(),
+            app_key: "937230ce-780c-4229-b886-2d3d31fc13xx".to_string(),
             metrics: ThingworxMetric::get_samples(),
         }
     }
@@ -168,6 +168,7 @@ pub struct TestDataDestination{
     pub database: String,
     pub user: Option<String>,
     pub password: Option<String>,
+    pub enabled: bool,
 }
 
 impl TestDataDestination{
@@ -180,9 +181,32 @@ impl TestDataDestination{
             database: "thingworx".to_string(),
             user: None,
             password: None,
+            enabled: false,
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug,Clone)]
+pub struct TestDataExportToDisk{
+    pub auto_create_folder : bool,
+    pub one_time_result_file_name: Option<String>,
+    pub repeat_result_file_name: Option<String>,
+    pub folder_name: String,
+    pub enabled: bool,
+}
+
+impl TestDataExportToDisk {
+    fn get_sample() -> TestDataExportToDisk {
+        TestDataExportToDisk {
+            auto_create_folder: true,
+            one_time_result_file_name: None,
+            repeat_result_file_name: None,
+            folder_name: "./export".to_string(),
+            enabled: true,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug,Clone)]
 pub struct RepeatTest{
     pub mem_info_one: bool,
@@ -281,7 +305,8 @@ pub struct ThingworxTestConfig{
     pub owner: Option<Owner>,
     pub testmachine: TestMachine,
     pub thingworx_servers:Option<Vec<ThingworxServer>>,
-    pub test_data_target: TestDataDestination,
+    pub result_export_to_db: TestDataDestination,
+    pub result_export_to_file: TestDataExportToDisk,
 }
 
 impl ThingworxTestConfig{
@@ -291,18 +316,19 @@ impl ThingworxTestConfig{
             owner: Some(Owner::get_sample()),
             testmachine: TestMachine::get_sample(),
             thingworx_servers: Some(ThingworxServer::get_samples()),
-            test_data_target: TestDataDestination::get_sample(),
+            result_export_to_db: TestDataDestination::get_sample(),
+            result_export_to_file: TestDataExportToDisk::get_sample(),
         }
     }
 
-    pub fn export_sample(filename: &str) -> Result<(), Box<Error>>{
+    pub fn export_sample(filename: &str) -> Result<(), Box<dyn Error>>{
         let testconfig = ThingworxTestConfig::get_sample();
         let testconfigstr = ser::to_string(&testconfig)?;
         fs::write(filename, &testconfigstr[..])?;
         Ok(())
     }
 
-    pub fn from_tomefile(filename: &str) -> Result<ThingworxTestConfig, Box<Error>>{
+    pub fn from_tomefile(filename: &str) -> Result<ThingworxTestConfig, Box<dyn Error>>{
         let mut file = fs::File::open(filename)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;

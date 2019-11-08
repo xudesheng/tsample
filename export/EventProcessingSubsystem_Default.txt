@@ -1,0 +1,1 @@
+{"Measurement": "EventProcessingSubsystem", "Provider": "Default", "QUALITY": "GOOD", "STATUS": "200 OK", "TIMESTAMP": "2019-11-08 23:00:31", "activeThreads": "0", "completedTaskCount": "4869", "corePoolSize": "500", "curentPoolSize": "500", "largestPoolSize": "500", "maxPoolSize": "2000", "queueSize": "0", "submitedTaskCount": "4869"}

@@ -54,7 +54,7 @@ impl MyInfluxClient{
         
     }
 
-    pub fn write_points(&self, points:Points) -> Result<(), Box<Error>>{
+    pub fn write_points(&self, points:Points) -> Result<(), Box<dyn Error>>{
         let client = Client::new(&self.url, &self.database);
         // match (&self.user, &self.password){
         //     (Some(user), Some(pass)) => {client.set_authentication(user, pass);},
