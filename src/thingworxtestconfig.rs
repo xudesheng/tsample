@@ -329,10 +329,12 @@ impl ThingworxTestConfig{
     }
 
     pub fn from_tomefile(filename: &str) -> Result<ThingworxTestConfig, Box<dyn Error>>{
+        debug!("Reading from file:{:?}", filename);
         let mut file = fs::File::open(filename)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
         let testconfig = de::from_slice(contents.as_bytes())?;
+        debug!("{:?}", testconfig);
         Ok(testconfig)
     }
 }

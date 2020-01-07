@@ -135,62 +135,58 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
                     if let Ok(twx_json) = res.json::<TwxJson>(){
                         //good points after parsing (deserialization)
                         debug!("JSON:{:?}", twx_json);
-                        let mut points_map:HashMap<String, Option<Point>>=HashMap::new();
                         let mut export_points_map:HashMap<String,Option<BTreeMap<String,String>>>=HashMap::new();
 
                         let mut key_list = Vec::new();
+                        //let timestamp=SystemTime::now().duration_since(UNIX_EPOCH)?;
+                        let system_time = SystemTime::now();
+                        let timestamp: DateTime<Utc> = system_time.into();
 
                         for row in twx_json.rows.iter(){
-                            let (key,description) = match row.description.find(": "){
+                            let (provider,description) = match row.description.find(": "){
                                 Some(start) => ((&row.description[0..start]).to_string(),(&row.description[start+2..]).to_string()),
                                 None => ("Default".to_string(), (&row.description).to_string()),
                             };
 
-                            if !points_map.contains_key(&key) {
-                                let measurement = format!("{}_{}", &metric.name, &row.name);
-                                let mut point = Point::new(&measurement);
-                                let mut hm:BTreeMap<String,String> = BTreeMap::new();
+                            let measurement = format!("{}_{}", &metric.name, &row.name);
+                            let mut point = Point::new(&measurement);
+                            let mut hm:BTreeMap<String,String> = BTreeMap::new();
 
-                                hm.insert("Measurement".to_string(), measurement.clone());
-                                hm.insert("Provider".to_string(), key.clone());
-                                point.add_tag("Provider", Value::String(key.to_string()));
-                                point.add_tag("description",Value::String(description.clone()));
-                                let host = match &twx_server.alias {
-                                    Some(alias)=> format!("{}_{}",alias, &twx_server.host),
-                                    None => format!("{}", &twx_server.host),
-                                };
+                            hm.insert("Measurement".to_string(), measurement.clone());
+                            hm.insert("Provider".to_string(), provider.clone());
+                            point.add_tag("Provider", Value::String(provider.to_string()));
+                            point.add_tag("description",Value::String(description.clone()));
+                            let host = match &twx_server.alias {
+                                Some(alias)=> format!("{}_{}",alias, &twx_server.host),
+                                None => format!("{}", &twx_server.host),
+                            };
 
-                                point.add_tag("host",Value::String(host));
-                                point.add_tag("component", Value::String("platform_thingworx".to_string()));
+                            point.add_tag("host",Value::String(host.clone()));
+                            hm.insert("host".to_string(),host.to_string() );
+                            point.add_tag("component", Value::String("platform_thingworx".to_string()));
 
-                                hm.insert("QUALITY".to_string(), "GOOD".to_string() );
-                                point.add_tag("QUALITY", Value::String("GOOD".to_string()));
+                            hm.insert("QUALITY".to_string(), "GOOD".to_string() );
+                            point.add_tag("QUALITY", Value::String("GOOD".to_string()));
 
-                                hm.insert("STATUS".to_string(),res.status().to_string().clone());
-                                point.add_tag("STATUS", Value::String(res.status().to_string()));
+                            hm.insert("STATUS".to_string(),res.status().to_string().clone());
+                            point.add_tag("STATUS", Value::String(res.status().to_string()));
 
-                                let timestamp=SystemTime::now().duration_since(UNIX_EPOCH)?;
+                            point.add_timestamp(timestamp.timestamp_millis());
+                            point.add_field("value", Value::Float(row.value));
+                            hm.insert("Value".to_string(),format!("{}",row.value));
 
-                                point.add_timestamp(timestamp.as_millis() as i64);
-                                point.add_field("value", Value::Float(row.value));
-                                let system_time = SystemTime::now();
-                                let datetime: DateTime<Utc> = system_time.into();
-                                hm.insert("TIMESTAMP".to_string(),datetime.format("%Y-%m-%dT%H:%M:%S.%3fZ").to_string());
+                            let system_time = SystemTime::now();
+                            let datetime: DateTime<Utc> = system_time.into();
+                            hm.insert("TIMESTAMP".to_string(),datetime.format("%Y-%m-%dT%H:%M:%S.%3fZ").to_string());
+                            
+                            let key = format!("{}_{}", measurement,provider);
 
-                                points_map.insert(key.to_string(), Some(point));
-                                export_points_map.insert(key.to_string(), Some(hm));
+                            export_points_map.insert(key.to_string(), Some(hm));
 
-                                key_list.push(key.clone());
-                            }
+                            points.push(point);
 
-                            if let Some(content) = points_map.get_mut(&key){
-                                match content {
-                                    Some(point)=>{point.add_field(&row.name, Value::Float(row.value));},
-                                    None => unreachable!(),
-                                }
-                                
-                            }
-
+                            key_list.push(key.clone());
+                        
                             if let Some(content) = export_points_map.get_mut(&key){
                                 match content {
                                     Some(hashmap) => {hashmap.insert(row.name.clone(),format!("{}",row.value));},
@@ -201,16 +197,6 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
                         }
 
                         for old_key in key_list.iter(){
-                            match points_map.remove(&old_key.to_string()) {
-                                Some(value)=> {
-                                    match value {
-                                        Some(point) => points.push(point),
-                                        None => unreachable!(),
-                                    }
-                                },
-                                None => unreachable!(),
-                            }
-
                             match export_points_map.remove(&old_key.to_string()) {
                                 Some(value) => {
                                     match value {
@@ -221,82 +207,40 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
                                 None => unreachable!(),
                             }
                         }
-
-                    }else{
-                        //bad JSON response.
-                        let mut point = Point::new(&metric.name);
-
-                        let mut hm:BTreeMap<String,String> = BTreeMap::new();
-
-                        hm.insert("Measurement".to_string(), "Default".to_string());
-
-                        hm.insert("Provider".to_string(),"Default".to_string());
-                        point.add_tag("Provider", Value::String("Default".to_string()));
-
-                        hm.insert("QUALITY".to_string(), "BADJSON".to_string() );
-                        point.add_field("QUALITY", Value::String("BADJSON".to_string()));
-
-                        hm.insert("STATUS".to_string(),res.status().to_string().clone());
-                        point.add_field("STATUS", Value::String(res.status().to_string()));
-                        let timestamp=SystemTime::now().duration_since(UNIX_EPOCH)?;
-
-                        point.add_timestamp(timestamp.as_millis() as i64);
-
-                        let system_time = SystemTime::now();
-                        let datetime: DateTime<Utc> = system_time.into();
-                        hm.insert("TIMESTAMP".to_string(),datetime.format("%Y-%m-%d %H:%M:%S").to_string());
-                        export_points.push(hm);
-                        points.push(point);
                     }
+                    // }else{
+                    //     //bad JSON response.
+                    //     let mut point = Point::new(&metric.name);
+
+                    //     let mut hm:BTreeMap<String,String> = BTreeMap::new();
+
+                    //     hm.insert("Measurement".to_string(), "Default".to_string());
+
+                    //     hm.insert("Provider".to_string(),"Default".to_string());
+                    //     point.add_tag("Provider", Value::String("Default".to_string()));
+
+                    //     hm.insert("QUALITY".to_string(), "BADJSON".to_string() );
+                    //     point.add_field("QUALITY", Value::String("BADJSON".to_string()));
+
+                    //     hm.insert("STATUS".to_string(),res.status().to_string().clone());
+                    //     point.add_field("STATUS", Value::String(res.status().to_string()));
+                    //     let timestamp=SystemTime::now().duration_since(UNIX_EPOCH)?;
+
+                    //     point.add_timestamp(timestamp.as_millis() as i64);
+
+                    //     let system_time = SystemTime::now();
+                    //     let datetime: DateTime<Utc> = system_time.into();
+                    //     hm.insert("TIMESTAMP".to_string(),datetime.format("%Y-%m-%d %H:%M:%S").to_string());
+                    //     export_points.push(hm);
+                    //     points.push(point);
+                    // }
                 }else{
                     //bad status (not success.)
-                    let mut point = Point::new(&metric.name);
-                    let mut hm:BTreeMap<String,String> = BTreeMap::new();
-
-                    hm.insert("Measurement".to_string(), "Default".to_string());
-                    hm.insert("Provider".to_string(),"Default".to_string());
-                    hm.insert("QUALITY".to_string(), "BADSTATUS".to_string() );
-                    hm.insert("STATUS".to_string(),res.status().to_string().clone());
-
-                    point.add_tag("Provider", Value::String("Default".to_string()));
-                    point.add_field("QUALITY", Value::String("BADSTATUS".to_string()));
-                    point.add_field("STATUS", Value::String(res.status().to_string()));
-                    
-                    let timestamp=SystemTime::now().duration_since(UNIX_EPOCH)?;
-
-                    point.add_timestamp(timestamp.as_millis() as i64);
-
-                    let system_time = SystemTime::now();
-                    let datetime: DateTime<Utc> = system_time.into();
-                    hm.insert("TIMESTAMP".to_string(),datetime.format("%Y-%m-%d %H:%M:%S").to_string());
-
-                    export_points.push(hm);
-                    points.push(point);
+                    debug!("status: {:?}", res);
                 }
             },
             Err(e) => {
                 //failed http call.
-                let mut point = Point::new(&metric.name);
-                point.add_tag("Provider", Value::String("Default".to_string()));
-                point.add_field("QUALITY", Value::String("WRONG".to_string()));
-                point.add_field("STATUS", Value::String("-1".to_string()));
-                
-                let mut hm:BTreeMap<String,String> = BTreeMap::new();
-
-                hm.insert("Measurement".to_string(), "Default".to_string());
-                hm.insert("Provider".to_string(),"Default".to_string());
-                hm.insert("QUALITY".to_string(), "WRONG".to_string() );
-                hm.insert("STATUS".to_string(),"-1".to_string());
-                let system_time = SystemTime::now();
-                let datetime: DateTime<Utc> = system_time.into();
-                hm.insert("TIMESTAMP".to_string(),datetime.format("%Y-%m-%d %H:%M:%S").to_string());
-
-                export_points.push(hm);
-                
-                let timestamp=SystemTime::now().duration_since(UNIX_EPOCH)?;
-
-                point.add_timestamp(timestamp.as_millis() as i64);
-                points.push(point);
                 debug!("HTTP Error:{}", e);
             }
         }
@@ -322,7 +266,7 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
         
     }
 
-    debug!("{:?}", points);
+    debug!("points:{:?}", points.len());
     Ok(points)
 }
 
