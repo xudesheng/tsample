@@ -7,6 +7,8 @@ extern crate env_logger;
 
 //use env_logger::{Env};
 use std::env;
+use std::fs;
+use std::path::Path;
 
 pub mod thingworxtestconfig;
 pub mod thingworxjson;
@@ -79,7 +81,7 @@ fn main() ->Result<(),Box<dyn Error>>{
     if matches.is_present("export") {
         match ThingworxTestConfig::export_sample(config_file) {
             Ok(()) => {
-                debug!("Sample configuration file has been exported to:{}", config_file);
+                info!("Sample configuration file has been exported to:{}", config_file);
                 process::exit(0);
             },
             Err(e) => {
@@ -127,9 +129,26 @@ fn main() ->Result<(),Box<dyn Error>>{
         None => {vec![]},
     };
 
+    //prepare local disk folder for export.
+    if testconfig.result_export_to_file.enabled {
+        let path = Path::new(&testconfig.result_export_to_file.folder_name);
+        if testconfig.result_export_to_file.auto_create_folder {
+            fs::create_dir_all(&path)?;
+        }
+
+        if !path.exists() {
+            error!("Can't find export folder or can't create export folder:{}", testconfig.result_export_to_file.folder_name);
+            process::exit(1);
+        }
+    }
+
+    let path = Path::new(&testconfig.result_export_to_file.folder_name);
     while running.load(Ordering::SeqCst){
         info!("start repeated sampling...");
-        let point = sampling::sampling_repeat(&testconfig.testmachine.testid, &testconfig.testmachine.repeat_sampling);
+        let point = sampling::sampling_repeat(&testconfig.testmachine.testid, 
+            &testconfig.testmachine.repeat_sampling,
+            &path, 
+            testconfig.result_export_to_file.enabled);
         //debug!("sampling_repeat: {:?}\n", point);
 
         let mut total_points:Vec<Point> = Vec::new();
@@ -139,8 +158,9 @@ fn main() ->Result<(),Box<dyn Error>>{
         }
         
         for server in &servers {
-            let points = sampling::sampling_thingworx(server);
-            //debug!("thingworx_servers:{:?}\n", points);
+            let points = sampling::sampling_thingworx(server,&path, 
+                testconfig.result_export_to_file.enabled);
+            debug!("thingworx_servers:{:?}\n", points);
             match points {
                 Ok(mut ps) => total_points.append(&mut ps),
                 Err(e) => {info!("Error:{}", e);},
@@ -149,12 +169,15 @@ fn main() ->Result<(),Box<dyn Error>>{
         
         debug!("Total Points:{}", total_points.len());
 
-        let myclient = MyInfluxClient::new(&testconfig.test_data_target);
+        if testconfig.result_export_to_db.enabled {
+            let myclient = MyInfluxClient::new(&testconfig.result_export_to_db);
 
-        match myclient.write_points(Points::create_new(total_points)) {
-            Ok(()) => {},
-            Err(e) => {error!("Error: {}", e);},
+            match myclient.write_points(Points::create_new(total_points)) {
+                Ok(()) => {},
+                Err(e) => {error!("Error: {}", e);},
+            }
         }
+        
 
         if !running.load(Ordering::SeqCst){break;}
 

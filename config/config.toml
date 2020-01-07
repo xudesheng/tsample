@@ -7,7 +7,7 @@ organization = "PTC Inc."
 
 [testmachine]
 testid = "twx85"
-sampling_cycle_inminute = 1
+sampling_cycle_inminute = 2
 
 [testmachine.onetime_sampling]
 os_type = true
@@ -99,8 +99,14 @@ split_desc_asprefix = true
 name = "FederationSubsystem"
 enabled = false
 
-[test_data_target]
+[result_export_to_db]
 using_udp = false
 server_name = "127.0.0.1"
 port = 8086
 database = "thingworx"
+enabled = false
+
+[result_export_to_file]
+auto_create_folder = true
+folder_name = "./export"
+enabled = true
