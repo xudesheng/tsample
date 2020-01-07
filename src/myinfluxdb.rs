@@ -55,11 +55,11 @@ impl MyInfluxClient{
     }
 
     pub fn write_points(&self, points:Points) -> Result<(), Box<dyn Error>>{
-        let client = Client::new(&self.url, &self.database);
-        // match (&self.user, &self.password){
-        //     (Some(user), Some(pass)) => {client.set_authentication(user, pass);},
-        //     (_,_) => {},
-        // }
+        // let client = Client::new(&self.url, &self.database);
+        let client = match (&self.user, &self.password){
+            (Some(user), Some(pass)) => Client::new(&self.url, &self.database).set_authentication(user, pass),
+            (_,_) => Client::new(&self.url, &self.database),
+        };
 
         // let client = &mut client;
         let _ = client.write_points(points, Some(Precision::Milliseconds), None)?;

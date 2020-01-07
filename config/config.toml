@@ -7,7 +7,7 @@ organization = "PTC Inc."
 
 [testmachine]
 testid = "twx85"
-sampling_cycle_inminute = 2
+sampling_cycle_seconds = 120
 
 [testmachine.onetime_sampling]
 os_type = true
@@ -104,9 +104,9 @@ using_udp = false
 server_name = "127.0.0.1"
 port = 8086
 database = "thingworx"
-enabled = false
+enabled = true
 
 [result_export_to_file]
 auto_create_folder = true
 folder_name = "./export"
-enabled = true
+enabled = false

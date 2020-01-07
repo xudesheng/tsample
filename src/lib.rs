@@ -289,14 +289,14 @@ impl ThingworxTestConfig{
         }
     }
 
-    pub fn export_sample(filename: &str) -> Result<(), Box<Error>>{
+    pub fn export_sample(filename: &str) -> Result<(), Box<dyn Error>>{
         let testconfig = ThingworxTestConfig::get_sample();
         let testconfigstr = ser::to_string(&testconfig)?;
         fs::write(filename, &testconfigstr[..])?;
         Ok(())
     }
 
-    pub fn from_tomefile(filename: &str) -> Result<ThingworxTestConfig, Box<Error>>{
+    pub fn from_tomefile(filename: &str) -> Result<ThingworxTestConfig, Box<dyn Error>>{
         let mut file = fs::File::open(filename)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;

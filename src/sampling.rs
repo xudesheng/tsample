@@ -141,18 +141,27 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
                         let mut key_list = Vec::new();
 
                         for row in twx_json.rows.iter(){
-                            let key = match row.description.find(": "){
-                                Some(start) => &row.description[0..start],
-                                None => "Default",
+                            let (key,description) = match row.description.find(": "){
+                                Some(start) => ((&row.description[0..start]).to_string(),(&row.description[start+2..]).to_string()),
+                                None => ("Default".to_string(), (&row.description).to_string()),
                             };
 
-                            if !points_map.contains_key(key) {
-                                let mut point = Point::new(&metric.name);
+                            if !points_map.contains_key(&key) {
+                                let measurement = format!("{}_{}", &metric.name, &row.name);
+                                let mut point = Point::new(&measurement);
                                 let mut hm:BTreeMap<String,String> = BTreeMap::new();
 
-                                hm.insert("Measurement".to_string(), metric.name.clone());
-                                hm.insert("Provider".to_string(), key.to_string().clone());
+                                hm.insert("Measurement".to_string(), measurement.clone());
+                                hm.insert("Provider".to_string(), key.clone());
                                 point.add_tag("Provider", Value::String(key.to_string()));
+                                point.add_tag("description",Value::String(description.clone()));
+                                let host = match &twx_server.alias {
+                                    Some(alias)=> format!("{}_{}",alias, &twx_server.host),
+                                    None => format!("{}", &twx_server.host),
+                                };
+
+                                point.add_tag("host",Value::String(host));
+                                point.add_tag("component", Value::String("platform_thingworx".to_string()));
 
                                 hm.insert("QUALITY".to_string(), "GOOD".to_string() );
                                 point.add_tag("QUALITY", Value::String("GOOD".to_string()));
@@ -163,18 +172,18 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
                                 let timestamp=SystemTime::now().duration_since(UNIX_EPOCH)?;
 
                                 point.add_timestamp(timestamp.as_millis() as i64);
-
+                                point.add_field("value", Value::Float(row.value));
                                 let system_time = SystemTime::now();
                                 let datetime: DateTime<Utc> = system_time.into();
-                                hm.insert("TIMESTAMP".to_string(),datetime.format("%Y-%m-%d %H:%M:%S").to_string());
+                                hm.insert("TIMESTAMP".to_string(),datetime.format("%Y-%m-%dT%H:%M:%S.%3fZ").to_string());
 
                                 points_map.insert(key.to_string(), Some(point));
                                 export_points_map.insert(key.to_string(), Some(hm));
 
-                                key_list.push(key);
+                                key_list.push(key.clone());
                             }
 
-                            if let Some(content) = points_map.get_mut(key){
+                            if let Some(content) = points_map.get_mut(&key){
                                 match content {
                                     Some(point)=>{point.add_field(&row.name, Value::Float(row.value));},
                                     None => unreachable!(),
@@ -182,7 +191,7 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
                                 
                             }
 
-                            if let Some(content) = export_points_map.get_mut(key){
+                            if let Some(content) = export_points_map.get_mut(&key){
                                 match content {
                                     Some(hashmap) => {hashmap.insert(row.name.clone(),format!("{}",row.value));},
                                     None => unreachable!(),

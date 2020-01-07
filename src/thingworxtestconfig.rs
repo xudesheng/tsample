@@ -267,7 +267,7 @@ impl OneTimeTest {
 #[derive(Serialize, Deserialize, Debug,Clone)]
 pub struct TestMachine {
     pub testid: String,
-    pub sampling_cycle_inminute: Option<u64>,
+    pub sampling_cycle_inseconds: Option<u64>,
     pub onetime_sampling:OneTimeTest,
     pub repeat_sampling:RepeatTest,
 }
@@ -276,7 +276,7 @@ impl TestMachine{
     fn get_sample() ->TestMachine{
         TestMachine{
             testid: "twx85".to_string(),
-            sampling_cycle_inminute: Some(2 as u64),
+            sampling_cycle_inseconds: Some(120 as u64),
             onetime_sampling: OneTimeTest::get_sample(),
             repeat_sampling: RepeatTest::get_sample(),
         }

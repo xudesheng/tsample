@@ -103,9 +103,9 @@ fn main() ->Result<(),Box<dyn Error>>{
         }
     };
 
-    let sleep = match testconfig.testmachine.sampling_cycle_inminute {
-        Some(minutes) => minutes*60*1000,
-        None => 1*60*1000,
+    let sleep = match testconfig.testmachine.sampling_cycle_inseconds {
+        Some(seconds) => seconds*1000,
+        None => 120*1000,
     };
     let sleep_duration = time::Duration::from_millis(sleep);
 
