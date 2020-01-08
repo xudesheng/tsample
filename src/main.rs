@@ -144,18 +144,26 @@ fn main() ->Result<(),Box<dyn Error>>{
 
     let path = Path::new(&testconfig.result_export_to_file.folder_name);
     while running.load(Ordering::SeqCst){
-        debug!("start repeated sampling...");
-        let point = sampling::sampling_repeat(&testconfig.testmachine.testid, 
-            &testconfig.testmachine.repeat_sampling,
-            &path, 
-            testconfig.result_export_to_file.enabled);
-        //debug!("sampling_repeat: {:?}\n", point);
-
         let mut total_points:Vec<Point> = Vec::new();
-        match point {
-            Ok(p) => total_points.push(p),
-            Err(e) =>{error!("Error:{}", e);},
+
+        match &testconfig.testmachine.repeat_sampling {
+            Some(ref x)=>{
+                debug!("start repeated sampling...");
+                let point = sampling::sampling_repeat(&testconfig.testmachine.testid, 
+                    x,
+                    &path, 
+                    testconfig.result_export_to_file.enabled);
+                //debug!("sampling_repeat: {:?}\n", point);
+
+                
+                match point {
+                    Ok(p) => total_points.push(p),
+                    Err(e) =>{error!("Error:{}", e);},
+                }
+            },
+            None => {}
         }
+        
         
         for server in &servers {
             let points = sampling::sampling_thingworx(server,&path, 

@@ -284,8 +284,8 @@ impl OneTimeTest {
 pub struct TestMachine {
     pub testid: String,
     pub sampling_cycle_inseconds: Option<u64>,
-    pub onetime_sampling:OneTimeTest,
-    pub repeat_sampling:RepeatTest,
+    pub onetime_sampling:Option<OneTimeTest>,
+    pub repeat_sampling:Option<RepeatTest>,
 }
 
 impl TestMachine{
@@ -293,8 +293,8 @@ impl TestMachine{
         TestMachine{
             testid: "twx85".to_string(),
             sampling_cycle_inseconds: Some(120 as u64),
-            onetime_sampling: OneTimeTest::get_sample(),
-            repeat_sampling: RepeatTest::get_sample(),
+            onetime_sampling: Some(OneTimeTest::get_sample()),
+            repeat_sampling: Some(RepeatTest::get_sample()),
         }
     }
 }

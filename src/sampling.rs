@@ -118,21 +118,35 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
                     .build()?;
     
     let mut points:Vec<Point> = Vec::new();
-    let mut export_points: Vec<BTreeMap<String,String>> = Vec::new();
+    //let mut export_points: Vec<BTreeMap<String,String>> = Vec::new();
 
     let test_component = match &twx_server.alias {
         Some(component) => component.clone(),
-        None => "Default".to_owned(),
+        None => format!("{}_{}", &twx_server.host, &twx_server.port),
     };
 
     for metric in twx_server.metrics.iter() {
         if !metric.enabled {continue;}
         let url = twx_server.get_url()?;
         let url = format!("{}/{}", url, metric.url);
-        //println!("url:{}", url);
+        debug!("url:{}", url);
         let headers = construct_headers(&twx_server.app_key)?;
-        //println!("header:{:?}", headers);
+        debug!("header:{:?}", headers);
         //let mut res = client.post(&url).headers(headers).send()?;
+
+        //reorganize output
+        //measurement will be the name of metrics, for example: StreamProcessingSubsystem
+        //tags will include:
+        //alias
+        //host_port if it's not 80 or 443
+        //provider
+        //each aspect will be fields, for example:
+        //queueSize, totalWritesQueued, totalWritesPerformed
+
+        // provider: name <-> value
+        let mut metric_value_map: HashMap<String, BTreeMap<String,f64>> = HashMap::new();
+        let system_time = SystemTime::now();
+        let timestamp: DateTime<Utc> = system_time.into();
 
         match client.post(&url).headers(headers).send() {
             Ok(mut res) => {
@@ -140,13 +154,7 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
                     if let Ok(twx_json) = res.json::<TwxJson>(){
                         //good points after parsing (deserialization)
                         debug!("JSON:{:?}", twx_json);
-                        let mut export_points_map:HashMap<String,Option<BTreeMap<String,String>>>=HashMap::new();
-
-                        let mut key_list = Vec::new();
-                        //let timestamp=SystemTime::now().duration_since(UNIX_EPOCH)?;
-                        let system_time = SystemTime::now();
-                        let timestamp: DateTime<Utc> = system_time.into();
-
+                        
                         for row in twx_json.rows.iter(){
                             match &metric.options {
                                 Some(option_vec) => {
@@ -156,97 +164,35 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
                                 },
                                 None => {}
                             }
-                            let (provider,description) = match row.description.find(": "){
+                            let (provider,_description) = match row.description.find(": "){
                                 Some(start) => ((&row.description[0..start]).to_string(),(&row.description[start+2..]).to_string()),
                                 None => ("Default".to_string(), (&row.description).to_string()),
                             };
 
-                            let measurement = format!("{}_{}", &metric.name, &row.name);
-                            let mut point = Point::new(&measurement);
-                            let mut hm:BTreeMap<String,String> = BTreeMap::new();
+                            if !metric_value_map.contains_key(&provider) {
+                                let value_map : BTreeMap<String,f64> = BTreeMap::new();
+                                metric_value_map.insert(provider.clone(), value_map);
+                            }
 
-                            hm.insert("Measurement".to_string(), measurement.clone());
-                            hm.insert("Provider".to_string(), provider.clone());
-                            point.add_tag("Provider", Value::String(provider.to_string()));
-                            point.add_tag("description",Value::String(description.clone()));
-                            let host = match &twx_server.alias {
-                                Some(alias)=> format!("{}_{}",alias, &twx_server.host),
-                                None => format!("{}", &twx_server.host),
-                            };
-
-                            point.add_tag("host",Value::String(host.clone()));
-                            hm.insert("host".to_string(),host.to_string() );
-                            point.add_tag("component", Value::String(test_component.clone()));
-
-                            hm.insert("QUALITY".to_string(), "GOOD".to_string() );
-                            point.add_tag("QUALITY", Value::String("GOOD".to_string()));
-
-                            hm.insert("STATUS".to_string(),res.status().to_string().clone());
-                            point.add_tag("STATUS", Value::String(res.status().to_string()));
-
-                            point.add_timestamp(timestamp.timestamp_millis());
-                            point.add_field("value", Value::Float(row.value));
-                            hm.insert("Value".to_string(),format!("{}",row.value));
-
-                            let system_time = SystemTime::now();
-                            let datetime: DateTime<Utc> = system_time.into();
-                            hm.insert("TIMESTAMP".to_string(),datetime.format("%Y-%m-%dT%H:%M:%S.%3fZ").to_string());
-                            
-                            let key = format!("{}_{}", measurement,provider);
-
-                            export_points_map.insert(key.to_string(), Some(hm));
-
-                            points.push(point);
-
-                            key_list.push(key.clone());
-                        
-                            if let Some(content) = export_points_map.get_mut(&key){
-                                match content {
-                                    Some(hashmap) => {hashmap.insert(row.name.clone(),format!("{}",row.value));},
-                                    None => unreachable!(),
-                                }
+                            if let Some(value_map) = metric_value_map.get_mut(&provider) {
+                                value_map.insert(row.name.clone(), row.value);
                             }
 
                         }
 
-                        for old_key in key_list.iter(){
-                            match export_points_map.remove(&old_key.to_string()) {
-                                Some(value) => {
-                                    match value {
-                                        Some(hashmap) => export_points.push(hashmap),
-                                        None => unreachable!(),
-                                    }
-                                },
-                                None => unreachable!(),
-                            }
-                        }
+                        // for old_key in key_list.iter(){
+                        //     match export_points_map.remove(&old_key.to_string()) {
+                        //         Some(value) => {
+                        //             match value {
+                        //                 Some(hashmap) => export_points.push(hashmap),
+                        //                 None => unreachable!(),
+                        //             }
+                        //         },
+                        //         None => unreachable!(),
+                        //     }
+                        // }
                     }
-                    // }else{
-                    //     //bad JSON response.
-                    //     let mut point = Point::new(&metric.name);
-
-                    //     let mut hm:BTreeMap<String,String> = BTreeMap::new();
-
-                    //     hm.insert("Measurement".to_string(), "Default".to_string());
-
-                    //     hm.insert("Provider".to_string(),"Default".to_string());
-                    //     point.add_tag("Provider", Value::String("Default".to_string()));
-
-                    //     hm.insert("QUALITY".to_string(), "BADJSON".to_string() );
-                    //     point.add_field("QUALITY", Value::String("BADJSON".to_string()));
-
-                    //     hm.insert("STATUS".to_string(),res.status().to_string().clone());
-                    //     point.add_field("STATUS", Value::String(res.status().to_string()));
-                    //     let timestamp=SystemTime::now().duration_since(UNIX_EPOCH)?;
-
-                    //     point.add_timestamp(timestamp.as_millis() as i64);
-
-                    //     let system_time = SystemTime::now();
-                    //     let datetime: DateTime<Utc> = system_time.into();
-                    //     hm.insert("TIMESTAMP".to_string(),datetime.format("%Y-%m-%d %H:%M:%S").to_string());
-                    //     export_points.push(hm);
-                    //     points.push(point);
-                    // }
+                    
                 }else{
                     //bad status (not success.)
                     debug!("status: {:?}", res);
@@ -257,28 +203,68 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
                 debug!("HTTP Error:{}", e);
             }
         }
-    }
-    //unimplemented!()
-    if export_file {
-        for export_point in export_points{
-            let filename=format!("{}_{}.txt", export_point.get("Measurement").or(Some(&"Default".to_string())).unwrap(),
-                    export_point.get("Provider").or(Some(&"Default".to_string())).unwrap()
-                );
-            let export_file = export_path.join(filename);
-            let file = OpenOptions::new()
-                .append(true)
-                .create(true)
-                .open(export_file)?;
 
-            let mut export_file = LineWriter::new(file);
-            
-            let data = format!("{:?}\n",export_point);
-            export_file.write_all(data.as_bytes())?;
-            export_file.flush()?;
+        //export data to both database and file.
+        for (provider, value_map) in &metric_value_map {
+            if value_map.len()==0 {
+                continue;
+            }
+            let mut point = Point::new(&metric.name);
+            point.add_tag("Provider", Value::String(provider.clone()));
+            point.add_tag("Platform", Value::String(test_component.clone()));
+            point.add_timestamp(timestamp.timestamp_nanos() / 1_000_000);
+
+            for (key, value) in value_map {
+                point.add_field(key.clone(), Value::Float(*value));
+            }
+
+            points.push(point);
+
+            if export_file {
+                let filename = format!("{}_{}.csv", &metric.name,provider);
+                let export_file = export_path.join(filename);
+
+                let file_exist = export_file.exists();
+
+                let file = OpenOptions::new()
+                    .append(true)
+                    .create(true)
+                    .open(export_file)?;
+
+                let mut export_file = LineWriter::new(file);
+
+                let mut row_headers = String::new();
+                let mut row_values = String::new();
+                if !file_exist {
+                    row_headers.push_str("provider");
+                    row_headers.push_str(",platform");
+                }
+                
+
+                row_values.push_str(&provider);
+                row_values.push_str(&test_component);
+
+                for (key, value) in value_map {
+                    if !file_exist {
+                        row_headers.push_str(",");
+                        row_headers.push_str(key);
+                    }
+
+                    row_values.push_str(&format!(",{}", value));
+                }
+                if !file_exist {
+                    row_headers.push_str("\n");
+                    export_file.write_all(row_headers.as_bytes())?;
+                }
+
+                row_values.push_str("\n");
+                export_file.write_all(row_values.as_bytes())?;
+                export_file.flush()?;
+            }
         }
-        
-    }
 
+    }
+    
     debug!("points:{:?}", points.len());
     Ok(points)
 }
