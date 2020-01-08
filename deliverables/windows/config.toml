@@ -1,0 +1,44 @@
+title = "this is a demo."
+
+[owner]
+name = "Desheng Xu"
+email = "dxu@ptc.com"
+organization = "PTC Inc."
+
+[testmachine]
+testid = "kepware"
+sampling_cycle_inseconds = 30
+
+[testmachine.onetime_sampling]
+os_type = true
+os_release = true
+cpu_num = true
+cpu_speed = true
+hostname = true
+
+[testmachine.repeat_sampling]
+cpu_load_one = true
+cpu_load_five = true
+cpu_load_fifteen = true
+proc_total = true
+mem_total = true
+mem_free = true
+mem_avail = true
+mem_buffers = true
+mem_cached = true
+swap_total = true
+swap_free = true
+disk_total = true
+disk_free = true
+
+[result_export_to_db]
+using_udp = false
+server_name = "10.100.0.16"
+port = 8086
+database = "thingworx"
+enabled = true
+
+[result_export_to_file]
+auto_create_folder = true
+folder_name = "./export"
+enabled = false
