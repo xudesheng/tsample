@@ -19,7 +19,7 @@ use chrono::DateTime;
 
 pub fn samping_one_time(testid: &str, o_sampling: &OneTimeTest) -> Result<Point, Box<dyn Error>>{
     //meansurement name
-    let mut point = Point::new("onetime_sampling");
+    let mut point = Point::new("OS_Status");
 
     point.add_tag("testid", Value::String(testid.to_string()));
     if o_sampling.os_type {point.add_field("os_type", Value::String(match os_type(){ Ok(value)=>value,Err(_)=>"Unknown".to_string(),}));}
@@ -36,7 +36,7 @@ pub fn samping_one_time(testid: &str, o_sampling: &OneTimeTest) -> Result<Point,
 }
 
 pub fn sampling_repeat(testid: &str, r_sampling: &RepeatTest, export_path:&Path, export_file:bool) -> Result<Point, Box<dyn Error>>{
-    let mut point = Point::new("repeat_sampling");
+    let mut point = Point::new("OS_Sampling");
     point.add_tag("testid", Value::String(testid.to_string()));
     
     //let r_sampling = &test_config.testmachine.repeat_sampling;
@@ -120,6 +120,11 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
     let mut points:Vec<Point> = Vec::new();
     let mut export_points: Vec<BTreeMap<String,String>> = Vec::new();
 
+    let test_component = match &twx_server.alias {
+        Some(component) => component.clone(),
+        None => "Default".to_owned(),
+    };
+
     for metric in twx_server.metrics.iter() {
         if !metric.enabled {continue;}
         let url = twx_server.get_url()?;
@@ -143,6 +148,14 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
                         let timestamp: DateTime<Utc> = system_time.into();
 
                         for row in twx_json.rows.iter(){
+                            match &metric.options {
+                                Some(option_vec) => {
+                                    if !option_vec.contains(&row.name){
+                                        continue;
+                                    }
+                                },
+                                None => {}
+                            }
                             let (provider,description) = match row.description.find(": "){
                                 Some(start) => ((&row.description[0..start]).to_string(),(&row.description[start+2..]).to_string()),
                                 None => ("Default".to_string(), (&row.description).to_string()),
@@ -163,7 +176,7 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
 
                             point.add_tag("host",Value::String(host.clone()));
                             hm.insert("host".to_string(),host.to_string() );
-                            point.add_tag("component", Value::String("platform_thingworx".to_string()));
+                            point.add_tag("component", Value::String(test_component.clone()));
 
                             hm.insert("QUALITY".to_string(), "GOOD".to_string() );
                             point.add_tag("QUALITY", Value::String("GOOD".to_string()));

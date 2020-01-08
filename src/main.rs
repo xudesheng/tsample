@@ -48,7 +48,7 @@ fn main() ->Result<(),Box<dyn Error>>{
     info!("TSAMPLE Started.");
 
     let matches = App::new("Thingworx Sampler")
-            .version("0.0.1")
+            .version("0.0.2")
             .author("Deshneg Xu <dxu@ptc.com>")
             .arg(Arg::with_name("config")
                 .short("c")
@@ -144,7 +144,7 @@ fn main() ->Result<(),Box<dyn Error>>{
 
     let path = Path::new(&testconfig.result_export_to_file.folder_name);
     while running.load(Ordering::SeqCst){
-        info!("start repeated sampling...");
+        debug!("start repeated sampling...");
         let point = sampling::sampling_repeat(&testconfig.testmachine.testid, 
             &testconfig.testmachine.repeat_sampling,
             &path, 
@@ -181,7 +181,7 @@ fn main() ->Result<(),Box<dyn Error>>{
 
         if !running.load(Ordering::SeqCst){break;}
 
-        info!("Sleeping...");
+        debug!("Sleeping...");
         s.store(true, Ordering::SeqCst);
         thread::sleep(sleep_duration);
         s.store(false, Ordering::SeqCst);

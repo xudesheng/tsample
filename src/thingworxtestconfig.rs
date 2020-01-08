@@ -15,6 +15,7 @@ pub struct ThingworxMetric{
     pub split_desc_asprefix : bool,
     pub name: String,
     pub enabled: bool,
+    pub options: Option<Vec<String>>,
 }
 
 impl ThingworxMetric{
@@ -24,6 +25,7 @@ impl ThingworxMetric{
             split_desc_asprefix,
             name,
             enabled,
+            options: None,
         }
     }
     // pub fn get_sample()->ThingworxMetric{
@@ -35,30 +37,38 @@ impl ThingworxMetric{
     //     }
     // }
     pub fn get_samples()->Vec<ThingworxMetric>{
+        let mut valuestream_options:Vec<String> = Vec::new();
+
+        valuestream_options.push("totalWritesQueued".to_string());
+        valuestream_options.push("totalWritesPerformed".to_string());
         
         let m1 = ThingworxMetric{
             url:"Subsystems/ValueStreamProcessingSubsystem/Services/GetPerformanceMetrics".to_string(),
             split_desc_asprefix : true,
             name: "ValueStreamProcessingSubsystem".to_string(),
             enabled: true,
+            options: Some(valuestream_options),
         };
         let m2 = ThingworxMetric{
             url:"Subsystems/DataTableProcessingSubsystem/Services/GetPerformanceMetrics".to_string(),
             split_desc_asprefix: true,
             name: "DataTableProcessingSubsystem".to_string(),
             enabled: false,
+            options: None,
         };
         let m3 = ThingworxMetric{
             url:"Subsystems/EventProcessingSubsystem/Services/GetPerformanceMetrics".to_string(),
             split_desc_asprefix : false,
             name: "EventProcessingSubsystem".to_string(),
             enabled: true,
+            options: None,
         };
         let m4 = ThingworxMetric{
             url:"Subsystems/PlatformSubsystem/Services/GetPerformanceMetrics".to_string(),
             split_desc_asprefix : true,
             name: "PlatformSubsystem".to_string(),
             enabled: false,
+            options: None,
         };
 
         let m5 = ThingworxMetric{
@@ -66,12 +76,14 @@ impl ThingworxMetric{
             split_desc_asprefix : true,
             name : "StreamProcessingSubsystem".to_string(),
             enabled: true,
+            options: None,
         };
         let m6 = ThingworxMetric{
             url:"Subsystems/WSCommunicationsSubsystem/Services/GetPerformanceMetrics".to_string(),
             split_desc_asprefix : true,
             name : "WSCommunicationsSubsystem".to_string(),
             enabled: false,
+            options: None,
         };
 
         let m7 = ThingworxMetric{
@@ -79,6 +91,7 @@ impl ThingworxMetric{
             split_desc_asprefix : true,
             name: "WSExecutionProcessingSubsystem".to_string(),
             enabled: false,
+            options: None,
         };
 
         let m8 = ThingworxMetric{
@@ -86,6 +99,7 @@ impl ThingworxMetric{
             split_desc_asprefix : true,
             name: "TunnelSubsystem".to_string(),
             enabled: false,
+            options: None,
         };
 
         let m9 = ThingworxMetric{
@@ -93,6 +107,7 @@ impl ThingworxMetric{
             split_desc_asprefix : true,
             name: "AlertProcessingSubsystem".to_string(),
             enabled:false,
+            options: None,
         };
 
         let m10 = ThingworxMetric{
@@ -100,6 +115,7 @@ impl ThingworxMetric{
             split_desc_asprefix : true,
             name: "FederationSubsystem".to_string(),
             enabled: false,
+            options: None,
         };
 
         [m1,m2,m3,m4,m5,m6,m7,m8,m9,m10].to_vec()
