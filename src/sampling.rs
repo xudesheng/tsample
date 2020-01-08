@@ -180,17 +180,6 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
 
                         }
 
-                        // for old_key in key_list.iter(){
-                        //     match export_points_map.remove(&old_key.to_string()) {
-                        //         Some(value) => {
-                        //             match value {
-                        //                 Some(hashmap) => export_points.push(hashmap),
-                        //                 None => unreachable!(),
-                        //             }
-                        //         },
-                        //         None => unreachable!(),
-                        //     }
-                        // }
                     }
                     
                 }else{
@@ -242,6 +231,7 @@ pub fn sampling_thingworx(twx_server: &ThingworxServer, export_path:&Path, expor
                 
 
                 row_values.push_str(&provider);
+                row_values.push_str(",");
                 row_values.push_str(&test_component);
 
                 for (key, value) in value_map {
