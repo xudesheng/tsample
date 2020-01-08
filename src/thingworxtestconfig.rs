@@ -225,9 +225,9 @@ impl TestDataExportToDisk {
 
 #[derive(Serialize, Deserialize, Debug,Clone)]
 pub struct RepeatTest{
-    pub mem_info_one: bool,
-    pub mem_info_five: bool,
-    pub mem_info_fifteen: bool,
+    pub cpu_load_one: bool,
+    pub cpu_load_five: bool,
+    pub cpu_load_fifteen: bool,
     pub proc_total: bool,
     pub mem_total: bool,
     pub mem_free: bool,
@@ -243,9 +243,9 @@ pub struct RepeatTest{
 impl RepeatTest{
     fn get_sample() ->RepeatTest{
         RepeatTest{
-            mem_info_one: true,
-            mem_info_five: true,
-            mem_info_fifteen: true,
+            cpu_load_one: true,
+            cpu_load_five: true,
+            cpu_load_fifteen: true,
             proc_total: true,
             mem_total: true,
             mem_free: true,

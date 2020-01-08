@@ -17,9 +17,9 @@ cpu_speed = true
 hostname = true
 
 [testmachine.repeat_sampling]
-mem_info_one = true
-mem_info_five = true
-mem_info_fifteen = true
+cpu_load_one = true
+cpu_load_five = true
+cpu_load_fifteen = true
 proc_total = true
 mem_total = true
 mem_free = true
@@ -107,7 +107,7 @@ using_udp = false
 server_name = "127.0.0.1"
 port = 8086
 database = "thingworx"
-enabled = false
+enabled = true
 
 [result_export_to_file]
 auto_create_folder = true

@@ -42,9 +42,9 @@ pub fn sampling_repeat(testid: &str, r_sampling: &RepeatTest, export_path:&Path,
     //let r_sampling = &test_config.testmachine.repeat_sampling;
 
     let load = loadavg()?;
-    if r_sampling.mem_info_one {point.add_field("mem_info_one", Value::Float(load.one));}
-    if r_sampling.mem_info_five {point.add_field("mem_info_five", Value::Float(load.five));}
-    if r_sampling.mem_info_fifteen {point.add_field("mem_info_fifteen", Value::Float(load.fifteen));}
+    if r_sampling.cpu_load_one {point.add_field("cpu_load_one", Value::Float(load.one));}
+    if r_sampling.cpu_load_five {point.add_field("cpu_load_five", Value::Float(load.five));}
+    if r_sampling.cpu_load_fifteen {point.add_field("cpu_load_fifteen", Value::Float(load.fifteen));}
 
     let mem = mem_info()?;
     if r_sampling.mem_total {point.add_field("mem_total",Value::Integer(mem.total as i64));}
