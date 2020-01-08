@@ -44,6 +44,7 @@ url = "Subsystems/ValueStreamProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "ValueStreamProcessingSubsystem"
 enabled = true
+options = ["totalWritesQueued", "totalWritesPerformed","queueSize"]
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/DataTableProcessingSubsystem/Services/GetPerformanceMetrics"
@@ -56,6 +57,7 @@ url = "Subsystems/EventProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = false
 name = "EventProcessingSubsystem"
 enabled = true
+options = ["submitedTaskCount", "completedTaskCount","queueSize"]
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/PlatformSubsystem/Services/GetPerformanceMetrics"
@@ -68,6 +70,7 @@ url = "Subsystems/StreamProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "StreamProcessingSubsystem"
 enabled = true
+options = ["totalWritesQueued", "totalWritesPerformed","queueSize"]
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/WSCommunicationsSubsystem/Services/GetPerformanceMetrics"
