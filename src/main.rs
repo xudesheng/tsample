@@ -4,7 +4,7 @@ extern crate sys_info;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
-
+use std::time::{Instant};
 //use env_logger::{Env};
 use std::env;
 use std::fs;
@@ -156,6 +156,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let path = Path::new(&testconfig.result_export_to_file.folder_name);
     while running.load(Ordering::SeqCst) {
+        let now = Instant::now();
         let mut total_points: Vec<Point> = Vec::new();
 
         match &testconfig.testmachine.repeat_sampling {
@@ -213,7 +214,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         debug!("Sleeping...");
         s.store(true, Ordering::SeqCst);
-        thread::sleep(sleep_duration);
+        let new_now = Instant::now();
+        thread::sleep(sleep_duration-new_now.duration_since(now));
         s.store(false, Ordering::SeqCst);
     }
 

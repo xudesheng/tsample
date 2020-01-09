@@ -163,12 +163,12 @@ pub struct TargetServer {
 }
 
 impl TargetServer {
-    fn get_sample() -> TargetServer {
-        TargetServer {
-            alias: "platform_1".to_string(),
-            server_config: TestServerConfig::get_sample(),
-        }
-    }
+    // fn get_sample() -> TargetServer {
+    //     TargetServer {
+    //         alias: "platform_1".to_string(),
+    //         server_config: TestServerConfig::get_sample(),
+    //     }
+    // }
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TestDataDestination {
