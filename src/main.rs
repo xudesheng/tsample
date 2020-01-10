@@ -4,7 +4,7 @@ extern crate sys_info;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
-use std::time::{Instant};
+use std::time::{Instant, Duration};
 //use env_logger::{Env};
 use std::env;
 use std::fs;
@@ -215,7 +215,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         debug!("Sleeping...");
         s.store(true, Ordering::SeqCst);
         let new_now = Instant::now();
-        thread::sleep(sleep_duration-new_now.duration_since(now));
+        let mut delta = sleep_duration-new_now.duration_since(now);
+        if delta < Duration::from_secs(1) {
+            delta = sleep_duration;
+        }
+
+        thread::sleep(delta);
         s.store(false, Ordering::SeqCst);
     }
 
