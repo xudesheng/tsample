@@ -212,13 +212,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             break;
         }
 
-        debug!("Sleeping...");
+        //debug!("Sleeping...");
         s.store(true, Ordering::SeqCst);
         let new_now = Instant::now();
-        let mut delta = sleep_duration-new_now.duration_since(now);
-        if delta < Duration::from_secs(1) {
-            delta = sleep_duration;
-        }
+        let delta = match sleep_duration > new_now.duration_since(now) + Duration::from_secs(1) {
+            true => sleep_duration - new_now.duration_since(now),
+            false => sleep_duration,
+        };
+
+        debug!("Sleeping:{:?}",delta);
 
         thread::sleep(delta);
         s.store(false, Ordering::SeqCst);
