@@ -197,7 +197,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         debug!("Total Points:{}", total_points.len());
 
-        if testconfig.result_export_to_db.enabled {
+        if testconfig.result_export_to_db.enabled && total_points.len()>0 {
             let myclient = MyInfluxClient::new(&testconfig.result_export_to_db);
 
             match myclient.write_points(Points::create_new(total_points)) {
@@ -220,7 +220,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             false => sleep_duration,
         };
 
-        debug!("Sleeping:{:?}",delta);
+        info!("Sleeping:{:?}",delta);
 
         thread::sleep(delta);
         s.store(false, Ordering::SeqCst);
