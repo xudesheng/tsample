@@ -230,12 +230,20 @@ pub fn sampling_thingworx(
         let system_time = SystemTime::now();
         let timestamp: DateTime<Utc> = system_time.into();
 
+        let response_start = SystemTime::now();
+        let mut response_time = 0;
+
         match client.post(&url).headers(headers).send() {
             Ok(mut res) => {
                 if res.status().is_success() {
                     if let Ok(twx_json) = res.json::<TwxJson>() {
                         //good points after parsing (deserialization)
                         debug!("JSON:{:?}", twx_json);
+
+                        response_time = match response_start.elapsed() {
+                            Ok(elapsed) => elapsed.as_nanos(),
+                            Err(_) => 0,
+                        };
 
                         for row in twx_json.rows.iter() {
                             match &metric.options {
@@ -288,6 +296,8 @@ pub fn sampling_thingworx(
             for (key, value) in value_map {
                 point.add_field(key.clone(), Value::Float(*value));
             }
+
+            point.add_field("ResponseTime", Value::Integer(response_time as i64));
 
             points.push(point);
 
