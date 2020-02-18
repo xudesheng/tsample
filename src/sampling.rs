@@ -325,10 +325,10 @@ pub async fn sampling_thingworx(
                 let mut row_values = String::new();
                 if !file_exist {
                     row_headers.push_str("time,provider");
-                    row_headers.push_str(",platform");
+                    row_headers.push_str(",platform,reponse_time");
                 }
 
-                row_values.push_str(&format!("{},{},{}", timestamp, &provider, &test_component,));
+                row_values.push_str(&format!("{},{},{},{}", timestamp, &provider, &test_component,response_time));
 
                 for (key, value) in value_map {
                     if !file_exist {
