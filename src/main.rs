@@ -16,7 +16,7 @@ use myinfluxdb::*;
 use thingworxtestconfig::*;
 //use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 
-extern crate clap;
+
 use clap::{App, Arg}; //, SubCommand
 use influx_talk::keys::{Point, Points};
 use std::error::Error;
@@ -27,6 +27,7 @@ extern crate ctrlc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::time::delay_for;
+use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -116,6 +117,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
     let sleep_duration = time::Duration::from_millis(sleep);
 
+    let sampling_timeout_inseconds = match testconfig.testmachine.sampling_timeout_inseconds {
+        Some(inseconds) => inseconds,
+        None => 10,
+    };
+
     let running = Arc::new(AtomicBool::new(true));
     let sleeping = Arc::new(AtomicBool::new(false));
 
@@ -179,19 +185,49 @@ async fn main() -> Result<(), Box<dyn Error>> {
             None => {}
         }
 
+        // for server in &servers {
+        //     let points = sampling::sampling_thingworx(
+        //         server,
+        //         &path,
+        //         testconfig.result_export_to_file.enabled,
+        //         sampling_timeout_inseconds,
+        //     ).await;
+        //     debug!("thingworx_servers:{:?}\n", points);
+        //     match points {
+        //         Ok(mut ps) => total_points.append(&mut ps),
+        //         Err(e) => {
+        //             info!("Error:{}", e);
+        //         }
+        //     }
+        // }
+        let (tx, mut rx) = mpsc::channel(100);
         for server in &servers {
-            let points = sampling::sampling_thingworx(
-                server,
-                &path,
-                testconfig.result_export_to_file.enabled,
-            ).await;
-            debug!("thingworx_servers:{:?}\n", points);
-            match points {
-                Ok(mut ps) => total_points.append(&mut ps),
-                Err(e) => {
-                    info!("Error:{}", e);
-                }
-            }
+            let mut local_tx = tx.clone();
+            let test_server = server.clone();
+            let enabled = testconfig.result_export_to_file.enabled;
+            let local_path = testconfig.result_export_to_file.folder_name.clone();
+            tokio::spawn(async move {
+                let points = sampling::sampling_thingworx(
+                    &test_server,
+                    &local_path,
+                    enabled,
+                    sampling_timeout_inseconds,
+                ).await;
+                debug!("thingworx_servers:{:?}", points);
+                let points = match points {
+                    Ok(points) => points,
+                    Err(e) => {
+                        error!("{:?}", e);
+                        vec![]
+                    },
+                };
+                local_tx.send(points).await
+            });
+        }
+
+        while let Some(mut points) = rx.recv().await{
+            debug!("thingworx_servers result received:{}", points.len());
+            total_points.append(&mut points);
         }
 
         debug!("Total Points:{}", total_points.len());

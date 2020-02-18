@@ -159,7 +159,7 @@ impl ThingworxServer {
         }
     }
 
-    pub fn get_url(&self) -> Result<Url, Box<dyn Error>> {
+    pub fn get_url(&self) -> Result<Url, failure::Error> {
         let mut url = Url::parse("http://127.0.0.1:8080/")?;
         url.set_scheme(&self.protocol)
             .map_err(|err| println!("{:?}", err))
@@ -304,6 +304,7 @@ impl OneTimeTest {
 pub struct TestMachine {
     pub testid: String,
     pub sampling_cycle_inseconds: Option<u64>,
+    pub sampling_timeout_inseconds: Option<u64>,
     pub onetime_sampling: Option<OneTimeTest>,
     pub repeat_sampling: Option<RepeatTest>,
 }
@@ -312,7 +313,8 @@ impl TestMachine {
     fn get_sample() -> TestMachine {
         TestMachine {
             testid: "twx85".to_string(),
-            sampling_cycle_inseconds: Some(120 as u64),
+            sampling_cycle_inseconds: Some(30 as u64),
+            sampling_timeout_inseconds: Some(10 as u64),
             onetime_sampling: Some(OneTimeTest::get_sample()),
             repeat_sampling: Some(RepeatTest::get_sample()),
         }

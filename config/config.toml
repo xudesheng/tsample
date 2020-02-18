@@ -8,6 +8,7 @@ organization = "PTC Inc."
 [testmachine]
 testid = "twx85"
 sampling_cycle_inseconds = 30
+sampling_timeout_inseconds = 10
 
 [testmachine.onetime_sampling]
 os_type = true

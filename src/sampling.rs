@@ -8,7 +8,7 @@ use influx_talk::keys::{Point, Value};
 
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 
-
+use std::time::Duration;
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
 use tokio::fs::OpenOptions;
@@ -17,7 +17,7 @@ use tokio::fs::OpenOptions;
 use tokio::io::{BufWriter, AsyncWriteExt};
 
 
-use std::path::Path;
+use std::path::{Path,PathBuf};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 use sys_info::*;
@@ -183,7 +183,7 @@ pub async fn sampling_repeat(
     Ok(point)
 }
 
-fn construct_headers(app_key: &str) -> Result<HeaderMap, Box<dyn Error>> {
+fn construct_headers(app_key: &str) -> Result<HeaderMap, failure::Error> {
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert("appKey", HeaderValue::from_str(app_key)?);
@@ -194,15 +194,16 @@ fn construct_headers(app_key: &str) -> Result<HeaderMap, Box<dyn Error>> {
 
 pub async fn sampling_thingworx(
     twx_server: &ThingworxServer,
-    export_path: &Path,
+    export_path: &str,
     export_file: bool,
-) -> Result<Vec<Point>, Box<dyn Error>> {
+    sampling_timeout_inseconds: u64,
+) -> Result<Vec<Point>, failure::Error> {
     //let client = ReqClient::new();
-    // let client = ReqClient::builder()
-    //     //.gzip(true)
-    //     .timeout(Duration::from_secs(10))
-    //     .build()?;
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        //.gzip(true)
+        .timeout(Duration::from_secs(sampling_timeout_inseconds))
+        .build()?;
+    // let client = reqwest::Client::new();
 
     let mut points: Vec<Point> = Vec::new();
     //let mut export_points: Vec<BTreeMap<String,String>> = Vec::new();
@@ -309,6 +310,8 @@ pub async fn sampling_thingworx(
             points.push(point);
 
             if export_file {
+                let export_path=PathBuf::from(export_path);
+
                 let filename = format!("{}_{}.csv", &metric.name, provider);
                 let export_file = export_path.join(filename);
 

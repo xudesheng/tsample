@@ -1,0 +1,114 @@
+title = "this is a demo."
+
+[owner]
+name = "Desheng Xu"
+email = "dxu@ptc.com"
+organization = "PTC Inc."
+
+[testmachine]
+testid = "twx85"
+sampling_cycle_inseconds = 30
+sampling_timeout_inseconds = 10
+
+[testmachine.onetime_sampling]
+os_type = true
+os_release = true
+cpu_num = true
+cpu_speed = true
+hostname = true
+
+[testmachine.repeat_sampling]
+cpu_load_one = true
+cpu_load_five = true
+cpu_load_fifteen = true
+proc_total = true
+mem_total = true
+mem_free = true
+mem_avail = true
+mem_buffers = true
+mem_cached = true
+swap_total = true
+swap_free = true
+disk_total = true
+disk_free = true
+
+[[thingworx_servers]]
+alias = "platform_1"
+host = "xxx85.desheng.io"
+port = 443
+protocol = "https"
+application = "Thingworx"
+app_key = "937230ce-780c-4229-b886-2d3d31fc13xx"
+
+[[thingworx_servers.metrics]]
+url = "Subsystems/ValueStreamProcessingSubsystem/Services/GetPerformanceMetrics"
+split_desc_asprefix = true
+name = "ValueStreamProcessingSubsystem"
+enabled = true
+options = ["totalWritesQueued", "totalWritesPerformed"]
+
+[[thingworx_servers.metrics]]
+url = "Subsystems/DataTableProcessingSubsystem/Services/GetPerformanceMetrics"
+split_desc_asprefix = true
+name = "DataTableProcessingSubsystem"
+enabled = false
+
+[[thingworx_servers.metrics]]
+url = "Subsystems/EventProcessingSubsystem/Services/GetPerformanceMetrics"
+split_desc_asprefix = false
+name = "EventProcessingSubsystem"
+enabled = true
+
+[[thingworx_servers.metrics]]
+url = "Subsystems/PlatformSubsystem/Services/GetPerformanceMetrics"
+split_desc_asprefix = true
+name = "PlatformSubsystem"
+enabled = false
+
+[[thingworx_servers.metrics]]
+url = "Subsystems/StreamProcessingSubsystem/Services/GetPerformanceMetrics"
+split_desc_asprefix = true
+name = "StreamProcessingSubsystem"
+enabled = true
+
+[[thingworx_servers.metrics]]
+url = "Subsystems/WSCommunicationsSubsystem/Services/GetPerformanceMetrics"
+split_desc_asprefix = true
+name = "WSCommunicationsSubsystem"
+enabled = false
+
+[[thingworx_servers.metrics]]
+url = "Subsystems/WSExecutionProcessingSubsystem/Services/GetPerformanceMetrics"
+split_desc_asprefix = true
+name = "WSExecutionProcessingSubsystem"
+enabled = false
+
+[[thingworx_servers.metrics]]
+url = "Subsystems/TunnelSubsystem/Services/GetPerformanceMetrics"
+split_desc_asprefix = true
+name = "TunnelSubsystem"
+enabled = false
+
+[[thingworx_servers.metrics]]
+url = "Subsystems/AlertProcessingSubsystem/Services/GetPerformanceMetrics"
+split_desc_asprefix = true
+name = "AlertProcessingSubsystem"
+enabled = false
+
+[[thingworx_servers.metrics]]
+url = "Subsystems/FederationSubsystem/Services/GetPerformanceMetrics"
+split_desc_asprefix = true
+name = "FederationSubsystem"
+enabled = false
+
+[result_export_to_db]
+using_udp = false
+server_name = "127.0.0.1"
+port = 8086
+database = "thingworx"
+enabled = false
+
+[result_export_to_file]
+auto_create_folder = true
+folder_name = "./export"
+enabled = true
