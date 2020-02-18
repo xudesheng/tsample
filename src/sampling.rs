@@ -4,18 +4,24 @@ use crate::thingworxjson::*;
 use crate::thingworxtestconfig::{OneTimeTest, RepeatTest, ThingworxServer};
 use chrono::offset::Utc;
 use chrono::DateTime;
-use influx_db_client::{Point, Value};
+use influx_talk::keys::{Point, Value};
+
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
-use reqwest::Client as ReqClient;
+
+
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
-use std::fs::OpenOptions;
-use std::io::LineWriter;
-use std::io::Write;
+use tokio::fs::OpenOptions;
+
+
+use tokio::io::{BufWriter, AsyncWriteExt};
+
+
 use std::path::Path;
-use std::time::Duration;
+
 use std::time::{SystemTime, UNIX_EPOCH};
 use sys_info::*;
+
 
 pub fn samping_one_time(testid: &str, o_sampling: &OneTimeTest) -> Result<Point, Box<dyn Error>> {
     //meansurement name
@@ -67,7 +73,7 @@ pub fn samping_one_time(testid: &str, o_sampling: &OneTimeTest) -> Result<Point,
     Ok(point)
 }
 
-pub fn sampling_repeat(
+pub async fn sampling_repeat(
     testid: &str,
     r_sampling: &RepeatTest,
     export_path: &Path,
@@ -141,14 +147,14 @@ pub fn sampling_repeat(
         let file = OpenOptions::new()
             .append(true)
             .create(true)
-            .open(export_file)?;
+            .open(export_file).await?;
 
-        let mut export_file = LineWriter::new(file);
+        let mut export_file = BufWriter::new(file);
         if export_header {
             const HEADER: &str = "timestamp,cpu_info_one,cpu_info_five,cpu_info_fifteen,mem_total,\
             mem_free,mem_avail,mem_buffers,mem_cached,swap_total,swap_free,disk_total,disk_free,\
             proc_total\n";
-            export_file.write_all(HEADER.as_bytes())?;
+            export_file.write(HEADER.as_bytes()).await?;
         }
         let system_time = SystemTime::now();
         let datetime: DateTime<Utc> = system_time.into();
@@ -170,8 +176,8 @@ pub fn sampling_repeat(
             disk.free,
             proc_total
         );
-        export_file.write_all(data.as_bytes())?;
-        export_file.flush()?;
+        export_file.write(data.as_bytes()).await?;
+        export_file.flush().await?;
     }
 
     Ok(point)
@@ -186,16 +192,17 @@ fn construct_headers(app_key: &str) -> Result<HeaderMap, Box<dyn Error>> {
     Ok(headers)
 }
 
-pub fn sampling_thingworx(
+pub async fn sampling_thingworx(
     twx_server: &ThingworxServer,
     export_path: &Path,
     export_file: bool,
 ) -> Result<Vec<Point>, Box<dyn Error>> {
     //let client = ReqClient::new();
-    let client = ReqClient::builder()
-        .gzip(true)
-        .timeout(Duration::from_secs(10))
-        .build()?;
+    // let client = ReqClient::builder()
+    //     //.gzip(true)
+    //     .timeout(Duration::from_secs(10))
+    //     .build()?;
+    let client = reqwest::Client::new();
 
     let mut points: Vec<Point> = Vec::new();
     //let mut export_points: Vec<BTreeMap<String,String>> = Vec::new();
@@ -232,11 +239,11 @@ pub fn sampling_thingworx(
 
         let response_start = SystemTime::now();
         let mut response_time = 0;
-
-        match client.post(&url).headers(headers).send() {
-            Ok(mut res) => {
+        
+        match client.post(&url).headers(headers).send().await {
+            Ok(res) => {
                 if res.status().is_success() {
-                    if let Ok(twx_json) = res.json::<TwxJson>() {
+                    if let Ok(twx_json) = res.json::<TwxJson>().await {
                         //good points after parsing (deserialization)
                         debug!("JSON:{:?}", twx_json);
 
@@ -310,9 +317,9 @@ pub fn sampling_thingworx(
                 let file = OpenOptions::new()
                     .append(true)
                     .create(true)
-                    .open(export_file)?;
+                    .open(export_file).await?;
 
-                let mut export_file = LineWriter::new(file);
+                let mut export_file = BufWriter::new(file);
 
                 let mut row_headers = String::new();
                 let mut row_values = String::new();
@@ -333,12 +340,12 @@ pub fn sampling_thingworx(
                 }
                 if !file_exist {
                     row_headers.push_str("\n");
-                    export_file.write_all(row_headers.as_bytes())?;
+                    export_file.write(row_headers.as_bytes()).await?;
                 }
 
                 row_values.push_str("\n");
-                export_file.write_all(row_values.as_bytes())?;
-                export_file.flush()?;
+                export_file.write(row_values.as_bytes()).await?;
+                export_file.flush().await?;
             }
         }
     }

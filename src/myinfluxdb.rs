@@ -13,7 +13,10 @@ use crate::thingworxtestconfig::TestDataDestination;
 /// https://github.com/driftluo/InfluxDBClient-rs
 ///
 //extern crate influx_db_client;
-use influx_db_client::{Client, Points, Precision};
+use influx_talk::keys::*;
+
+use influx_talk::client::*;
+
 use std::error::Error;
 
 pub struct MyInfluxClient {
@@ -57,7 +60,7 @@ impl MyInfluxClient {
         }
     }
 
-    pub fn write_points(&self, points: Points) -> Result<(), Box<dyn Error>> {
+    pub async fn write_points(&self, points: Points) -> Result<(), Box<dyn Error>> {
         // let client = Client::new(&self.url, &self.database);
         let client = match (&self.user, &self.password) {
             (Some(user), Some(pass)) => {
@@ -67,7 +70,7 @@ impl MyInfluxClient {
         };
 
         // let client = &mut client;
-        let _ = client.write_points(points, Some(Precision::Milliseconds), None)?;
+        let _ = client.write_points(points, Some(Precision::Milliseconds), None).await?;
         Ok(())
     }
 }

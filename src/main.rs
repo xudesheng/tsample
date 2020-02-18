@@ -1,6 +1,3 @@
-extern crate reqwest;
-extern crate serde;
-extern crate sys_info;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
@@ -21,16 +18,18 @@ use thingworxtestconfig::*;
 
 extern crate clap;
 use clap::{App, Arg}; //, SubCommand
-use influx_db_client::{Point, Points};
+use influx_talk::keys::{Point, Points};
 use std::error::Error;
 use std::process;
-use std::{thread, time};
+use std::{time};
 
 extern crate ctrlc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use tokio::time::delay_for;
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     //let env = pretty_env_logger::Env::new().filter("TSAMPLE_LOG");
     //pretty_env_logger::init_custom_env("TSAMPLE_LOG");
     let log_level = match env::var("TSAMPLE_LOG") {
@@ -167,7 +166,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     x,
                     &path,
                     testconfig.result_export_to_file.enabled,
-                );
+                ).await;
                 //debug!("sampling_repeat: {:?}\n", point);
 
                 match point {
@@ -185,7 +184,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 server,
                 &path,
                 testconfig.result_export_to_file.enabled,
-            );
+            ).await;
             debug!("thingworx_servers:{:?}\n", points);
             match points {
                 Ok(mut ps) => total_points.append(&mut ps),
@@ -200,7 +199,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         if testconfig.result_export_to_db.enabled && total_points.len()>0 {
             let myclient = MyInfluxClient::new(&testconfig.result_export_to_db);
 
-            match myclient.write_points(Points::create_new(total_points)) {
+            match myclient.write_points(Points::create_new(total_points)).await {
                 Ok(()) => {}
                 Err(e) => {
                     error!("Error: {}", e);
@@ -222,7 +221,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         info!("Sleeping:{:?}",delta);
 
-        thread::sleep(delta);
+        delay_for(delta).await;
         s.store(false, Ordering::SeqCst);
     }
 

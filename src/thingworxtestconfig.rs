@@ -1,6 +1,3 @@
-extern crate serde;
-extern crate url;
-
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs;
