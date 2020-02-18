@@ -27,7 +27,7 @@ extern crate ctrlc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::time::delay_for;
-use tokio::sync::mpsc;
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -200,34 +200,50 @@ async fn main() -> Result<(), Box<dyn Error>> {
         //         }
         //     }
         // }
-        let (tx, mut rx) = mpsc::channel(100);
+        let mut tasks = vec![];
+
         for server in &servers {
-            let mut local_tx = tx.clone();
             let test_server = server.clone();
             let enabled = testconfig.result_export_to_file.enabled;
             let local_path = testconfig.result_export_to_file.folder_name.clone();
-            tokio::spawn(async move {
-                let points = sampling::sampling_thingworx(
+            let task = tokio::spawn(async move {
+                // let points = 
+                sampling::sampling_thingworx(
                     &test_server,
                     &local_path,
                     enabled,
                     sampling_timeout_inseconds,
-                ).await;
-                debug!("thingworx_servers:{:?}", points);
-                let points = match points {
-                    Ok(points) => points,
-                    Err(e) => {
-                        error!("{:?}", e);
-                        vec![]
-                    },
-                };
-                local_tx.send(points).await
+                ).await
+                // ;
+                // debug!("thingworx_servers:{:?}", points);
+                // let points = match points {
+                //     Ok(points) => points,
+                //     Err(e) => {
+                //         error!("{:?}", e);
+                //         vec![]
+                //     },
+                // };
+                // local_tx.send(points).await
             });
+            tasks.push(task);
         }
 
-        while let Some(mut points) = rx.recv().await{
-            debug!("thingworx_servers result received:{}", points.len());
-            total_points.append(&mut points);
+        // while let Some(mut points) = rx.recv().await{
+        //     debug!("thingworx_servers result received:{}", points.len());
+        //     total_points.append(&mut points);
+        // }
+        for task in tasks {
+            match task.await {
+                Err(e) =>{
+                    error!("Error happened in task: {:?}", e);
+                },
+                Ok(res) => match res {
+                    Err(e) => {
+                        error!("Error happened in task sampling: {:?}", e);
+                    },
+                    Ok(mut vec) => total_points.append(&mut vec),
+                }
+            }
         }
 
         debug!("Total Points:{}", total_points.len());
