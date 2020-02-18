@@ -204,6 +204,7 @@ pub async fn sampling_thingworx(
         .timeout(Duration::from_secs(sampling_timeout_inseconds))
         .build()?;
     // let client = reqwest::Client::new();
+    debug!("Query server: {:?}",twx_server.host);
 
     let mut points: Vec<Point> = Vec::new();
     //let mut export_points: Vec<BTreeMap<String,String>> = Vec::new();
