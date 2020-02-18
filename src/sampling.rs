@@ -287,7 +287,8 @@ pub async fn sampling_thingworx(
             }
             Err(e) => {
                 //failed http call.
-                debug!("HTTP Error:{}", e);
+                error!("Server:{},HTTP Error:{}, ignore all rest metrics from this server", twx_server.host,e);
+                break;
             }
         }
 
@@ -353,7 +354,7 @@ pub async fn sampling_thingworx(
         }
     }
 
-    debug!("points:{:?}", points.len());
+    debug!("collected points:{:?}", points.len());
     Ok(points)
 }
 
