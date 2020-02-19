@@ -51,7 +51,7 @@ options = ["totalWritesQueued", "totalWritesPerformed","queueSize"]
 url = "Subsystems/DataTableProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "DataTableProcessingSubsystem"
-enabled = false
+enabled = true
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/EventProcessingSubsystem/Services/GetPerformanceMetrics"
@@ -64,7 +64,7 @@ options = ["submitedTaskCount", "completedTaskCount","queueSize"]
 url = "Subsystems/PlatformSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "PlatformSubsystem"
-enabled = false
+enabled = true
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/StreamProcessingSubsystem/Services/GetPerformanceMetrics"
@@ -77,25 +77,25 @@ options = ["totalWritesQueued", "totalWritesPerformed","queueSize"]
 url = "Subsystems/WSCommunicationsSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "WSCommunicationsSubsystem"
-enabled = false
+enabled = true
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/WSExecutionProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "WSExecutionProcessingSubsystem"
-enabled = false
+enabled = true
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/TunnelSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "TunnelSubsystem"
-enabled = false
+enabled = true
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/AlertProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "AlertProcessingSubsystem"
-enabled = false
+enabled = true
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/FederationSubsystem/Services/GetPerformanceMetrics"
@@ -122,7 +122,7 @@ options = ["totalWritesQueued", "totalWritesPerformed","queueSize"]
 url = "Subsystems/DataTableProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "DataTableProcessingSubsystem"
-enabled = false
+enabled = true
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/EventProcessingSubsystem/Services/GetPerformanceMetrics"
@@ -135,7 +135,7 @@ options = ["submitedTaskCount", "completedTaskCount","queueSize"]
 url = "Subsystems/PlatformSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "PlatformSubsystem"
-enabled = false
+enabled = true
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/StreamProcessingSubsystem/Services/GetPerformanceMetrics"
@@ -148,25 +148,25 @@ options = ["totalWritesQueued", "totalWritesPerformed","queueSize"]
 url = "Subsystems/WSCommunicationsSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "WSCommunicationsSubsystem"
-enabled = false
+enabled = true
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/WSExecutionProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "WSExecutionProcessingSubsystem"
-enabled = false
+enabled = true
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/TunnelSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "TunnelSubsystem"
-enabled = false
+enabled = true
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/AlertProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "AlertProcessingSubsystem"
-enabled = false
+enabled = true
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/FederationSubsystem/Services/GetPerformanceMetrics"

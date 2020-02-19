@@ -72,7 +72,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         //     .value_name("LOG_FILE")
         //     .takes_value(true))
         .get_matches();
-    let config_file = matches.value_of("config").unwrap_or("./config.toml");
+    let config_file = match matches.value_of("config"){
+        Some(value) => value.to_string(),
+        None => env::var("TSAMPLE_CONFIG").unwrap_or("./config.toml".to_string()),
+    };
     // let log_file = matches.value_of("logfile").unwrap_or("./tsample.log");
 
     // match init_log(log_file) {
@@ -81,7 +84,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // };
 
     if matches.is_present("export") {
-        match ThingworxTestConfig::export_sample(config_file) {
+        match ThingworxTestConfig::export_sample(&config_file) {
             Ok(()) => {
                 info!(
                     "Sample configuration file has been exported to:{}",
@@ -103,7 +106,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     //tsample::ThingworxTestConfig::export_sample(config_file)?;
-    let testconfig = match ThingworxTestConfig::from_tomefile(config_file) {
+    let testconfig = match ThingworxTestConfig::from_tomefile(&config_file) {
         Ok(conf) => conf,
         Err(e) => {
             error!("Can't parse configuration file:{},{}", config_file, e);
