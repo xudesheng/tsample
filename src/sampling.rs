@@ -213,6 +213,7 @@ pub async fn sampling_thingworx(
         Some(component) => component.clone(),
         None => format!("{}_{}", &twx_server.host, &twx_server.port),
     };
+    debug!("alias or host_port:{}",test_component);
 
     for metric in twx_server.metrics.iter() {
         if !metric.enabled {
@@ -247,7 +248,7 @@ pub async fn sampling_thingworx(
                 if res.status().is_success() {
                     if let Ok(twx_json) = res.json::<TwxJson>().await {
                         //good points after parsing (deserialization)
-                        debug!("JSON:{:?}", twx_json);
+                        trace!("JSON:{:?}", twx_json);
 
                         response_time = match response_start.elapsed() {
                             Ok(elapsed) => elapsed.as_nanos(),
@@ -283,7 +284,7 @@ pub async fn sampling_thingworx(
                     }
                 } else {
                     //bad status (not success.)
-                    debug!("status: {:?}", res);
+                    error!("Unexpected status: {:?}", res);
                 }
             }
             Err(e) => {
@@ -355,7 +356,9 @@ pub async fn sampling_thingworx(
         }
     }
 
-    debug!("collected points:{:?}", points.len());
+    debug!("collected points in total:{:?}", points.len());
+    trace!("collected points in detail:{:?}", points);
+    
     Ok(points)
 }
 
