@@ -2,13 +2,13 @@
 
 ## Background
 
-`tsample` is small, customized tool which plays similar role to `telegraph`. Its focus is on gethering Thingworx performance metrics. Historically, this tool also supports collecting OS level performance metrics but it's highly recommended to collect OS level performance metrics by using `telegraph`.
+`tsample` is small, customized tool which plays similar role to `telegraf`. Its focus is on gethering Thingworx performance metrics. Historically, this tool also supports collecting OS level performance metrics but it's highly recommended to collect OS level performance metrics by using `telegraf`.
 
 
 
 ## Recommanded deployment architecture
 
-![image-20200219144349186](install and configuration guide.assets/image-20200219144349186.png)
+![image-20200328153804825](docs/_image/image-20200328153804825.png)
 
 `tsample` can be deployed in the same box where Thingworx tomcat is running, but it's recommended to deploy it on a seperated box to minimize any performance impact caused by the collector.
 
@@ -22,7 +22,7 @@ In case you need a build to run on Resperry PI, please let me know.
 
 ### Notice
 
-This tool was built before the author knows `telegraph` and therefore it includes the capability to collect basic OS level performance metrics such as CPU usage, Memory usage and Disk usage. However, it's strongly recommended to use `telegraph` to do so.
+This tool was built before the author knows `telegraf` and therefore it includes the capability to collect basic OS level performance metrics such as CPU usage, Memory usage and Disk usage. However, it's strongly recommended to use `telegraf` to do so.
 
 this document will focus on explaining how to use it to collect Thingworx metrics.
 
@@ -100,7 +100,7 @@ This is sectin is required and it defines where this tool will run.
 | sampling_cycle_inseconds     | Indicates the interval time of performance metrics sampling – typically 30, 20 or 10 seconds. Default value is 30 seconds, if not included. Values less than 10 seconds or greater than 60 seconds are not recommended. |
 | sampling_timeout_inseconds   | Indicates the timeout for RESTful calls to ThingWorx. Default value is 10 seconds if not included. It's recommended to set this value between 10 and `sampling_cycle_inseconds`. |
 | testmachine.onetime_sampling | (Optional) Recommend leaving it at default.                  |
-| testmachine.repeat_sampling  | (Optional) and you can just change each metric to `false`; Recommend using telegraph to get OS level metrics. This feature will be removed in the next release, only remaining in the current release for code stability purposes. |
+| testmachine.repeat_sampling  | (Optional) and you can just change each metric to `false`; Recommend using telegraf to get OS level metrics. This feature will be removed in the next release, only remaining in the current release for code stability purposes. |
 
 
 
@@ -147,7 +147,7 @@ If the output Data Shape exceeds above limitation, the tool will likely not work
 | ------------------- | ------------------------------------------------------------ |
 | url                 | Required - end point of RESTful API for each performance metric |
 | split_desc_asprefix | Required - set to true                                       |
-| name                | The ==measurement== name in InfluxDB(or file name if result is exported to local file). |
+| name                | The measurement name in InfluxDB(or file name if result is exported to local file). |
 | enabled             | Required - set to `true` or `false`. Use to easily control which metrics will be collected with minimal configuration changes |
 | options             | Optional - Control which metrics are collected from this subsystem, instread of all. Example: `["totalWritesQueued", "totalWritesPerformed","queueSize"]` |
 |                     |                                                              |
