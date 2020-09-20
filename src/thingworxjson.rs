@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap as Map;
+use serde_json::Value as JsonValue;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TwxJson {
@@ -12,5 +13,5 @@ pub struct TwxJson {
 pub struct RowData {
     pub description: String,
     pub name: String,
-    pub value: f64,
+    pub value: JsonValue,
 }

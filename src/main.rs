@@ -39,16 +39,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
 
     env_logger::Builder::new().parse_filters(&log_level).init();
-    // env_logger::builder()
-    //     .format(|buf, record| {
-    //         writeln!(buf, "{}: {}", record.level(), record.args())
-    //     })
-    //     .init();
-
+    
     info!("TSAMPLE Started.");
 
     let matches = App::new("Thingworx Sampler")
-        .version("0.0.2")
+        .version("0.3.0")
         .author("Deshneg Xu <dxu@ptc.com>")
         .arg(
             Arg::with_name("config")
@@ -65,24 +60,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .long("export")
                 .requires("config"),
         )
-        // .arg(Arg::with_name("logfile")
-        //     .help("Specific log file name other than tsample.log in current folder.")
-        //     .short("l")
-        //     .long("logfile")
-        //     .value_name("LOG_FILE")
-        //     .takes_value(true))
         .get_matches();
     let config_file = match matches.value_of("config"){
         Some(value) => value.to_string(),
         None => env::var("TSAMPLE_CONFIG").unwrap_or("./config.toml".to_string()),
     };
-    // let log_file = matches.value_of("logfile").unwrap_or("./tsample.log");
-
-    // match init_log(log_file) {
-    //     Ok(()) => println!("log started."),
-    //     Err(e) => {println!("Error:{}", e);}
-    // };
-
+    
     if matches.is_present("export") {
         match ThingworxTestConfig::export_sample(&config_file) {
             Ok(()) => {
@@ -93,9 +76,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 process::exit(0);
             }
             Err(e) => {
-                // println!("Failed to export sample configuration file to:{}", config_file);
-                // println!("Error message:{}.", e);
-
                 error!(
                     "Failed to export sample configuration file to:{}",
                     config_file

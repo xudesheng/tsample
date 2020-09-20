@@ -27,86 +27,82 @@ mem_free = true
 mem_avail = true
 mem_buffers = true
 mem_cached = true
+mem_used = true
 swap_total = true
 swap_free = true
 disk_total = true
 disk_free = true
 
 [[thingworx_servers]]
-alias = "platform_1"
-host = "xxx85.desheng.io"
-port = 443
-protocol = "https"
+alias = "platform_901"
+host = "twx901.eastus2.cloudapp.azure.com"
+port = 8080
+protocol = "http"
 application = "Thingworx"
-app_key = "937230ce-780c-4229-b886-2d3d31fc13xx"
+app_key = "0203fcdc-9a92-45d5-8b10-4f37c36b80d3"
 
 [[thingworx_servers.metrics]]
-url = "Subsystems/ValueStreamProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "ValueStreamProcessingSubsystem"
 enabled = true
 options = ["totalWritesQueued", "totalWritesPerformed"]
 
 [[thingworx_servers.metrics]]
-url = "Subsystems/DataTableProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "DataTableProcessingSubsystem"
 enabled = false
 
 [[thingworx_servers.metrics]]
-url = "Subsystems/EventProcessingSubsystem/Services/GetPerformanceMetrics"
-split_desc_asprefix = false
+split_desc_asprefix = true
 name = "EventProcessingSubsystem"
 enabled = true
 
 [[thingworx_servers.metrics]]
-url = "Subsystems/PlatformSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "PlatformSubsystem"
 enabled = false
 
 [[thingworx_servers.metrics]]
-url = "Subsystems/StreamProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "StreamProcessingSubsystem"
 enabled = true
 
 [[thingworx_servers.metrics]]
-url = "Subsystems/WSCommunicationsSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "WSCommunicationsSubsystem"
 enabled = false
 
 [[thingworx_servers.metrics]]
-url = "Subsystems/WSExecutionProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "WSExecutionProcessingSubsystem"
 enabled = false
 
 [[thingworx_servers.metrics]]
-url = "Subsystems/TunnelSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "TunnelSubsystem"
 enabled = false
 
 [[thingworx_servers.metrics]]
-url = "Subsystems/AlertProcessingSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "AlertProcessingSubsystem"
 enabled = false
 
 [[thingworx_servers.metrics]]
-url = "Subsystems/FederationSubsystem/Services/GetPerformanceMetrics"
 split_desc_asprefix = true
 name = "FederationSubsystem"
 enabled = false
 
+[[thingworx_servers.metrics]]
+split_desc_asprefix = true
+name = "ClusteringSubsystem"
+enabled = true
+
 [result_export_to_db]
 using_udp = false
 server_name = "127.0.0.1"
-port = 8086
-database = "thingworx"
-enabled = false
+port = 8087
+database = "demo"
+enabled = true
 
 [result_export_to_file]
 auto_create_folder = true

@@ -8,7 +8,8 @@ use url::Url;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ThingworxMetric {
-    pub url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
     pub split_desc_asprefix: bool,
     pub name: String,
     pub enabled: bool,
@@ -16,15 +17,27 @@ pub struct ThingworxMetric {
 }
 
 impl ThingworxMetric {
+    pub fn get_url(&self) -> String {
+        if self.url.is_none() {
+            format!("Subsystems/{}/Services/GetPerformanceMetrics",self.name)
+        }else{
+            self.url.clone().unwrap()
+        }
+    }
+
+    pub fn set_options(&mut self,options:Vec<String>){
+        self.options=Some(options);
+    }
+
     pub fn new(
-        url: String,
-        split_desc_asprefix: bool,
+        // url: String,
+        // split_desc_asprefix: bool,
         name: String,
         enabled: bool,
     ) -> ThingworxMetric {
         ThingworxMetric {
-            url,
-            split_desc_asprefix,
+            url:None,
+            split_desc_asprefix:true,
             name,
             enabled,
             options: None,
@@ -44,84 +57,26 @@ impl ThingworxMetric {
         valuestream_options.push("totalWritesQueued".to_string());
         valuestream_options.push("totalWritesPerformed".to_string());
 
-        let m1 = ThingworxMetric {
-            url: "Subsystems/ValueStreamProcessingSubsystem/Services/GetPerformanceMetrics"
-                .to_string(),
-            split_desc_asprefix: true,
-            name: "ValueStreamProcessingSubsystem".to_string(),
-            enabled: true,
-            options: Some(valuestream_options),
-        };
-        let m2 = ThingworxMetric {
-            url: "Subsystems/DataTableProcessingSubsystem/Services/GetPerformanceMetrics"
-                .to_string(),
-            split_desc_asprefix: true,
-            name: "DataTableProcessingSubsystem".to_string(),
-            enabled: false,
-            options: None,
-        };
-        let m3 = ThingworxMetric {
-            url: "Subsystems/EventProcessingSubsystem/Services/GetPerformanceMetrics".to_string(),
-            split_desc_asprefix: false,
-            name: "EventProcessingSubsystem".to_string(),
-            enabled: true,
-            options: None,
-        };
-        let m4 = ThingworxMetric {
-            url: "Subsystems/PlatformSubsystem/Services/GetPerformanceMetrics".to_string(),
-            split_desc_asprefix: true,
-            name: "PlatformSubsystem".to_string(),
-            enabled: false,
-            options: None,
-        };
+        let mut m1 = ThingworxMetric::new(
+            "ValueStreamProcessingSubsystem".to_string(),
+            true,
+        ); 
+        m1.set_options(valuestream_options);
+        
+        let m2 = ThingworxMetric::new("DataTableProcessingSubsystem".to_string(),false);
+        let m3 = ThingworxMetric::new("EventProcessingSubsystem".to_string(),true);
+        let m4 = ThingworxMetric::new("PlatformSubsystem".to_string(),false);
 
-        let m5 = ThingworxMetric {
-            url: "Subsystems/StreamProcessingSubsystem/Services/GetPerformanceMetrics".to_string(),
-            split_desc_asprefix: true,
-            name: "StreamProcessingSubsystem".to_string(),
-            enabled: true,
-            options: None,
-        };
-        let m6 = ThingworxMetric {
-            url: "Subsystems/WSCommunicationsSubsystem/Services/GetPerformanceMetrics".to_string(),
-            split_desc_asprefix: true,
-            name: "WSCommunicationsSubsystem".to_string(),
-            enabled: false,
-            options: None,
-        };
+        let m5 = ThingworxMetric::new("StreamProcessingSubsystem".to_string(),true);
+        let m6 = ThingworxMetric::new("WSCommunicationsSubsystem".to_string(),false);
 
-        let m7 = ThingworxMetric {
-            url: "Subsystems/WSExecutionProcessingSubsystem/Services/GetPerformanceMetrics"
-                .to_string(),
-            split_desc_asprefix: true,
-            name: "WSExecutionProcessingSubsystem".to_string(),
-            enabled: false,
-            options: None,
-        };
+        let m7 = ThingworxMetric::new("WSExecutionProcessingSubsystem".to_string(),false,);
 
-        let m8 = ThingworxMetric {
-            url: "Subsystems/TunnelSubsystem/Services/GetPerformanceMetrics".to_string(),
-            split_desc_asprefix: true,
-            name: "TunnelSubsystem".to_string(),
-            enabled: false,
-            options: None,
-        };
+        let m8 = ThingworxMetric::new("TunnelSubsystem".to_string(),false,);
 
-        let m9 = ThingworxMetric {
-            url: "Subsystems/AlertProcessingSubsystem/Services/GetPerformanceMetrics".to_string(),
-            split_desc_asprefix: true,
-            name: "AlertProcessingSubsystem".to_string(),
-            enabled: false,
-            options: None,
-        };
+        let m9 = ThingworxMetric::new("AlertProcessingSubsystem".to_string(),false,);
 
-        let m10 = ThingworxMetric {
-            url: "Subsystems/FederationSubsystem/Services/GetPerformanceMetrics".to_string(),
-            split_desc_asprefix: true,
-            name: "FederationSubsystem".to_string(),
-            enabled: false,
-            options: None,
-        };
+        let m10 = ThingworxMetric::new("FederationSubsystem".to_string(),false,);
 
         [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10].to_vec()
     }
@@ -174,6 +129,33 @@ impl ThingworxServer {
             Some(app) => app,
             None => "Thingworx",
         });
+
+        Ok(url)
+    }
+
+    pub fn get_metric_url(&self,metric:&ThingworxMetric) -> Result<Url, failure::Error> {
+        let mut url = Url::parse("http://127.0.0.1:8080/")?;
+        url.set_scheme(&self.protocol)
+            .map_err(|err| println!("{:?}", err))
+            .ok();
+        url.set_host(Some(&self.host))
+            .map_err(|err| println!("{:?}", err))
+            .ok();
+        url.set_port(Some(self.port))
+            .map_err(|err| println!("{:?}", err))
+            .ok();
+        
+        let application = match &self.application {
+            Some(app) => app,
+            None => "Thingworx",
+        };
+
+        let application = match &metric.url{
+            None=>format!("{}/Subsystems/{}/Services/GetPerformanceMetrics",application,metric.name),
+            Some(url)=>if url.starts_with("/"){format!("{}{}",application,url)}else{format!("{}/{}",application,url)},
+        };
+
+        url.set_path(&application);
 
         Ok(url)
     }
@@ -254,6 +236,7 @@ pub struct RepeatTest {
     pub mem_avail: bool,
     pub mem_buffers: bool,
     pub mem_cached: bool,
+    pub mem_used: bool,
     pub swap_total: bool,
     pub swap_free: bool,
     pub disk_total: bool,
@@ -272,6 +255,7 @@ impl RepeatTest {
             mem_avail: true,
             mem_buffers: true,
             mem_cached: true,
+            mem_used: true,
             swap_total: true,
             swap_free: true,
             disk_total: true,

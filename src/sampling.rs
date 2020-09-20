@@ -21,7 +21,7 @@ use std::path::{Path,PathBuf};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 use sys_info::*;
-
+use serde_json::Value as JsonValue;
 
 pub fn samping_one_time(testid: &str, o_sampling: &OneTimeTest) -> Result<Point, Box<dyn Error>> {
     //meansurement name
@@ -111,6 +111,10 @@ pub async fn sampling_repeat(
     if r_sampling.mem_cached {
         point.add_field("mem_cached", Value::Integer(mem.cached as i64));
     }
+
+    if r_sampling.mem_used {
+        point.add_field("mem_used", Value::Integer( (mem.total-mem.free-mem.buffers-mem.cached) as i64));
+    }
     if r_sampling.swap_total {
         point.add_field("swap_total", Value::Integer(mem.swap_total as i64));
     }
@@ -152,7 +156,7 @@ pub async fn sampling_repeat(
         let mut export_file = BufWriter::new(file);
         if export_header {
             const HEADER: &str = "timestamp,cpu_info_one,cpu_info_five,cpu_info_fifteen,mem_total,\
-            mem_free,mem_avail,mem_buffers,mem_cached,swap_total,swap_free,disk_total,disk_free,\
+            mem_free,mem_avail,mem_buffers,mem_cached,mem_used,swap_total,swap_free,disk_total,disk_free,\
             proc_total\n";
             export_file.write(HEADER.as_bytes()).await?;
         }
@@ -160,7 +164,7 @@ pub async fn sampling_repeat(
         let datetime: DateTime<Utc> = system_time.into();
 
         let data = format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
             datetime.format("%Y-%m-%d %H:%M:%S"),
             load.one,
             load.five,
@@ -170,6 +174,7 @@ pub async fn sampling_repeat(
             mem.avail,
             mem.buffers,
             mem.cached,
+            (mem.total-mem.free-mem.buffers-mem.cached),
             mem.swap_total,
             mem.swap_free,
             disk.total,
@@ -219,31 +224,20 @@ pub async fn sampling_thingworx(
         if !metric.enabled {
             continue;
         }
-        let url = twx_server.get_url()?;
-        let url = format!("{}/{}", url, metric.url);
+        let url = twx_server.get_metric_url(metric)?;
+        // let url = format!("{}/{}", url, metric.get_url());
         debug!("url:{}", url);
         let headers = construct_headers(&twx_server.app_key)?;
         debug!("header:{:?}", headers);
-        //let mut res = client.post(&url).headers(headers).send()?;
-
-        //reorganize output
-        //measurement will be the name of metrics, for example: StreamProcessingSubsystem
-        //tags will include:
-        //alias
-        //host_port if it's not 80 or 443
-        //provider
-        //each aspect will be fields, for example:
-        //queueSize, totalWritesQueued, totalWritesPerformed
-
-        // provider: name <-> value
-        let mut metric_value_map: HashMap<String, BTreeMap<String, f64>> = HashMap::new();
+        
+        let mut metric_value_map: HashMap<String, BTreeMap<String, JsonValue>> = HashMap::new();
         let system_time = SystemTime::now();
         let timestamp: DateTime<Utc> = system_time.into();
 
         let response_start = SystemTime::now();
         let mut response_time = 0;
         
-        match client.post(&url).headers(headers).send().await {
+        match client.post(url).headers(headers).send().await {
             Ok(res) => {
                 if res.status().is_success() {
                     if let Ok(twx_json) = res.json::<TwxJson>().await {
@@ -273,12 +267,12 @@ pub async fn sampling_thingworx(
                             };
 
                             if !metric_value_map.contains_key(&provider) {
-                                let value_map: BTreeMap<String, f64> = BTreeMap::new();
+                                let value_map: BTreeMap<String, JsonValue> = BTreeMap::new();
                                 metric_value_map.insert(provider.clone(), value_map);
                             }
 
                             if let Some(value_map) = metric_value_map.get_mut(&provider) {
-                                value_map.insert(row.name.clone(), row.value);
+                                value_map.insert(row.name.clone(), row.value.clone());
                             }
                         }
                     }
@@ -305,7 +299,31 @@ pub async fn sampling_thingworx(
             point.add_timestamp(timestamp.timestamp_nanos() / 1_000_000);
 
             for (key, value) in value_map {
-                point.add_field(key.clone(), Value::Float(*value));
+                match value{
+                    JsonValue::Number(num)=>{
+                        match num.as_f64() {
+                            Some(num) =>{point.add_field(key.clone(), Value::Float(num));},
+                            None=>{point.add_field(key.clone(), Value::Float(0.0));},
+                        }
+                    }
+                    JsonValue::Null => {}
+                    JsonValue::Bool(boolvalue) => {point.add_field(key.clone(), Value::Boolean(*boolvalue));}
+                    JsonValue::String(strvalue) => {point.add_field(key.clone(), Value::String(strvalue.clone()));}
+                    JsonValue::Array(value) => {
+                        match serde_json::to_string(value){
+                            Ok(strvalue)=>{point.add_field(key.clone(), Value::String(strvalue));},
+                            Err(e)=>error!("Failed to convert array result to string:key:{},value:{:?},error:{:?}",key,value,e),
+                        }
+                        
+                    }
+                    JsonValue::Object(value) => {
+                        match serde_json::to_string(value){
+                            Ok(strvalue)=>{point.add_field(key.clone(), Value::String(strvalue));},
+                            Err(e)=>error!("Failed to convert object map result to string:key:{},value:{:?},error:{:?}",key,value,e),
+                        }
+                    }
+                }
+                
             }
 
             point.add_field("ResponseTime", Value::Integer(response_time as i64));
