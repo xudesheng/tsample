@@ -207,6 +207,8 @@ pub async fn sampling_thingworx(
     let client = reqwest::Client::builder()
         //.gzip(true)
         .timeout(Duration::from_secs(sampling_timeout_inseconds))
+        .danger_accept_invalid_hostnames(true)
+        .danger_accept_invalid_certs(true)
         .build()?;
     // let client = reqwest::Client::new();
     debug!("Query server: {:?}",twx_server.host);
