@@ -260,12 +260,24 @@ pub async fn sampling_thingworx(
                                 }
                                 None => {}
                             }
-                            let (provider, _description) = match row.description.find(": ") {
+                            if row.value.is_none() {
+                                continue; //CXServer has case that doesn't have value in metrics.
+                            }
+
+                            let row_desc:String = if row.description.is_some(){
+                                row.description.clone().unwrap()
+                            }else{
+                                "".to_string()
+                            };
+
+                            let row_value = row.value.clone().unwrap();
+
+                            let (provider, _description) = match row_desc.find(": ") {
                                 Some(start) => (
-                                    (&row.description[0..start]).to_string(),
-                                    (&row.description[start + 2..]).to_string(),
+                                    (&row_desc[0..start]).to_string(),
+                                    (&row_desc[start + 2..]).to_string(),
                                 ),
-                                None => ("Default".to_string(), (&row.description).to_string()),
+                                None => ("Default".to_string(), (&row_desc).to_string()),
                             };
 
                             if !metric_value_map.contains_key(&provider) {
@@ -274,7 +286,8 @@ pub async fn sampling_thingworx(
                             }
 
                             if let Some(value_map) = metric_value_map.get_mut(&provider) {
-                                value_map.insert(row.name.clone(), row.value.clone());
+                                //value_map.insert(row.name.clone(), row.value.clone());
+                                value_map.insert(sanitize_name(&row.name,&metric.sanitize), row_value.clone());
                             }
                         }
                     }
@@ -380,6 +393,25 @@ pub async fn sampling_thingworx(
     trace!("collected points in detail:{:?}", points);
     
     Ok(points)
+}
+
+fn sanitize_name(name:&str,sanizie:&Option<bool>)->String {
+    if let Some(should) = sanizie {
+        if *should {
+            let mut r = String::with_capacity(name.len());
+            for (_i,d) in name.char_indices(){
+                if "\"'.- ()/".contains(d) {
+                    r.push('_');
+                }else{
+                    r.push(d);
+                }
+            }
+            return r;
+        }
+
+    }
+
+    return name.to_string();
 }
 
 //Ok(())

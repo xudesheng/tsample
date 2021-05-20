@@ -35,11 +35,11 @@ mem_used = false
 
 [[thingworx_servers]]
 alias = "platform_1"
-host = "fake.desheng.io"
+host = "twx85.desheng.io"
 port = 443
 protocol = "https"
 application = "Thingworx"
-app_key = "8d9f6189-fake-4542-97ce-5a6fc75a0372"
+app_key = "8d9f6189-1939-4542-97ce-5a6fc75a0372"
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/ValueStreamProcessingSubsystem/Services/GetPerformanceMetrics"
@@ -105,12 +105,12 @@ name = "FederationSubsystem"
 enabled = false
 
 [[thingworx_servers]]
-alias = "platform_2"
-host = "fake2.demotest.io"
+alias = "flow85.demotest.io"
+host = "flow85.demotest.io"
 port = 443
 protocol = "https"
 application = "Thingworx"
-app_key = "8d9f6189-fake-4542-97ce-5a6fc75a0372"
+app_key = "8d9f6189-1939-4542-97ce-5a6fc75a0372"
 
 [[thingworx_servers.metrics]]
 url = "Subsystems/ValueStreamProcessingSubsystem/Services/GetPerformanceMetrics"

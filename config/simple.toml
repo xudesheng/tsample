@@ -30,6 +30,7 @@ swap_total = true
 swap_free = true
 disk_total = true
 disk_free = true
+mem_used = false
 
 [test_data_target]
 using_udp = false

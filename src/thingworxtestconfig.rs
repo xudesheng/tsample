@@ -14,6 +14,7 @@ pub struct ThingworxMetric {
     pub name: String,
     pub enabled: bool,
     pub options: Option<Vec<String>>,
+    pub sanitize: Option<bool>,
 }
 
 impl ThingworxMetric {
@@ -41,6 +42,7 @@ impl ThingworxMetric {
             name,
             enabled,
             options: None,
+            sanitize: None,
         }
     }
     // pub fn get_sample()->ThingworxMetric{

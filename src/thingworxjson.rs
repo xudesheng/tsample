@@ -11,7 +11,7 @@ pub struct TwxJson {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RowData {
-    pub description: String,
+    pub description: Option<String>,
     pub name: String,
-    pub value: JsonValue,
+    pub value: Option<JsonValue>,
 }
