@@ -2,35 +2,78 @@
 
 This purpose of this tool is to provide performance metrics for Thingworx.
 
-It can export different kind of performance metrics not only from Thingworx but also from OS level. However, it seems like `Telegraf` already provides enough OS level metrics, therefore, OS level export will be limited and be optional.
+From the version `v4.0.0`, this tool will not support to export the OS level metrics. Instead, it can support the export of the following metrics:
 
-### How to deploy Telegraf on Windows
-
-How to install it as Windows service: https://github.com/influxdata/telegraf/blob/master/docs/WINDOWS_SERVICE.md
-
-Download: https://dl.influxdata.com/telegraf/releases/telegraf-1.13.0_windows_amd64.zip
+1. Thingworx Subsystems
+2. Thingworx Connection Server
+3. JMX C3P0 metrics (you need to install the extension first.)
 
 
 
-### How to deloy Telegraf on Linux
+## How to use
 
-How to install on Redhat/CentOS
+### Help
 
-```bash
-wget https://dl.influxdata.com/telegraf/releases/telegraf-1.13.0-1.x86_64.rpm
-sudo yum localinstall telegraf-1.13.0-1.x86_64.rpm
+``` shell
+tsample -h
 ```
 
-How to install on Ubuntu:
+```
+[2022-03-11T05:52:33Z INFO  tsample] tsample:4.0.0 Started.
+[2022-03-11T05:52:33Z INFO  tsample] Log level: info, you can change it by setting TSAMPLE_LOG env.
+tsample 4.0.0
+xudesheng <xudesheng@gmail.com>
 
-```bash
-wget https://dl.influxdata.com/telegraf/releases/telegraf_1.13.0-1_amd64.deb
-sudo dpkg -i telegraf_1.13.0-1_amd64.deb
+
+USAGE:
+    tsample [OPTIONS]
+
+OPTIONS:
+    -c, --config <CONFIG_FILE>      Configuration file name, it should be a YAML file.
+    -e, --export                    Export sample configuration file.
+    -f, --flatten <FLATTEN_FILE>    Flatten the configuration file into a new yaml file for
+                                    validation.
+    -h, --help                      Print help information
+    -V, --version                   Print version information
 ```
 
-How to configure:
 
-https://github.com/influxdata/telegraf/blob/master/docs/CONFIGURATION.md
+
+### Generate Sample Configuration File:
+
+```
+tsample -c myconfig.yml -e
+```
+
+With this command, it will create a yaml format configuration file.
+
+### Adjust your configuration file:
+
+The most important portion is:
+
+```
+thingworx_servers:
+  - name: "platform1"
+    # the hostname or IP address of the Thingworx Server, default is localhost
+    host: "dxu-twx.demotest.io"
+    # the port of the Thingworx Server, default is 8080
+    port: 443
+    # the protocol of the Thingworx Server, default is http. valid values are http and https
+    protocol: https
+    # the application name of the Thingworx Server, default is "Thingworx"
+    # application: "Thingworx"
+
+    # the appkey of the Thingworx Server, this is mandatory.
+    app_key: "e5d38c56-c8da-4bff-bba3-06bf3da7474a"
+```
+
+
+
+### How to run
+
+```
+tsample -c myconfig.yml
+```
 
 
 
