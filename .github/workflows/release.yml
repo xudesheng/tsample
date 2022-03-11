@@ -57,12 +57,12 @@ jobs:
     runs-on: ${{ matrix.os || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v2
-      - uses: Install dependencies (linux)
+      - name: Install dependencies (linux)
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libssl-dev
         if: matrix.os == 'ubuntu-latest'
-      - uses: Install dependencies (MacOS)
+      - name: Install dependencies (MacOS)
         run: |
           xcode-select --install
           brew install openssl
