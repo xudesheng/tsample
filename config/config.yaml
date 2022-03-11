@@ -1,0 +1,120 @@
+# Modify this with your name and email address, but it's optional.
+owner:
+  name: "Desheng Xu"
+  email: "dxu@ptc.com"
+  organization: "PTC Inc."
+
+# scrap interval time in seconds, optional, default is 30 seconds.
+scrap_interval: 30
+
+# refresh connection server or c3p0 driver interval time, optional, default is 300 seconds.
+refresh_server_interval: 300
+# Usually, you don't need to touch this block.
+# this will be the default value for the "subsystems" for each Thingworx Server.
+# If you want to configure the "subsystems" differently for each Thingworx Server, 
+# please modify the subsystems part underneath each server.
+default_subsystems: &default_subsystems
+  - name: "ValueStreamProcessingSubsystem"
+    # only value stream, stream and data table 3 subsystems need this option.
+    # it will split the leading text as a label for different persistent providers.
+    split_desc_asprefix: true
+    # each subsystem will be enabled by default, you can disable it by setting "enabled" to false.
+    # enabled: true
+
+    # by default, all metrics inside the subsystem will be grasped (except string value)
+    # options:
+    #   - totalWritesQueued
+    #   - totalWritesPerformed
+    #   - queueSize
+  - name: "StreamProcessingSubsystem"
+    split_desc_asprefix: true
+  - name: "EventProcessingSubsystem"
+  - name: "DataTableProcessingSubsystem"
+  - name: "PlatformSubsystem"
+    enabled: false
+  - name: "WSCommunicationsSubsystem"
+    enabled: false
+  - name: "WSExecutionProcessingSubsystem"
+  - name: "TunnelSubsystem"
+  - name: "AlertProcessingSubsystem"
+  - name: "FederationSubsystem"
+
+# this block is mandatory, it should at least have one server configured.
+thingworx_servers:
+  - name: "platform1"
+    # the hostname or IP address of the Thingworx Server, default is localhost
+    host: "dxu-twx.demotest.io"
+    # the port of the Thingworx Server, default is 8080
+    port: 443
+    # the protocol of the Thingworx Server, default is http. valid values are http and https
+    protocol: https
+    # the application name of the Thingworx Server, default is "Thingworx"
+    # application: "Thingworx"
+
+    # the appkey of the Thingworx Server, this is mandatory.
+    app_key: "e5d38c56-c8da-4bff-bba3-06bf3da7474a"
+    
+    # the "subsystems" for this Thingworx Server.
+    # If you want to configure the "subsystems" differently for each Thingworx Server, 
+    # please modify the subsystems part underneath each server.
+    subsystems: *default_subsystems
+
+    # the connection_servers block is optional. If it's not presented, then no connection server metrics will be scraped.
+    # you have to install connection server in order to use this block.
+    connection_servers:
+      # the name of the connection server, an empty list means this tool will scrape the name of all connection servers dynamically.
+      names: []
+      # if the connection server name is empty, then the tool will scrape the name of all connection servers by this interval time (seconds).
+      name_refresh_interval: 300
+      # the metrics of the connection server, default is all metrics (when it's empty).
+      metrics: []
+
+    # the c3p0metrics block is optional. If it's not presented, then no c3p0 metrics will be scraped.
+    # You have to install specific extension in Thingworx 8.5 or 8.4 to use this feature.
+    c3p0_metrics:
+      # the name of the c3p0 connection pool, an empty list means this tool will scrape the name of all c3p0 connection pools dynamically.
+      # apprently, the name of the c3p0 driver is a random string and it will be different after each restart.
+      # so, it makes no sense to put the name in this list until the above issue is fixed.
+      # https://thingworx.jira.com/browse/TW-93463
+      names: []
+      # if the c3p0 connection pool name is empty, then the tool will scrape the name of all c3p0 connection pools by this interval time (seconds).
+      name_refresh_interval: 300
+      # the metrics of the c3p0 connection pool, default is all numeric metrics (when it's empty).
+      metrics: []
+
+  # - name: "Thingworx-Server-2"
+  #   host: "localhost"
+  #   port: 8081
+  #   protocols: http
+  #   application: "Thingworx"
+  #   app_key: "8d9f6189-1939-4542-97ce-5a6fc75a0372"
+  #   subsystems: *default_subsystems
+export_to_influxdb:
+  # the hostname or IP address of the InfluxDB server, default is localhost
+  server_name: "dxu-twx.demotest.io"
+  # the port of the InfluxDB server, default is 8086
+  port: 8086
+  # the protocol of the InfluxDB server, default is http. valid values are http and https
+  protocol: "http"
+
+  # the database name for metrics data, mandatory.
+  database: "thingworx"
+
+  # the username for the InfluxDB server, optional
+  username: "twadmin"
+
+  # the password for the InfluxDB server, optional
+  password: "twadmin"
+
+  # enable influx export, default is true
+  enabled: false
+
+export_to_file:
+  # the directory for metrics data, mandatory.
+  directory: "./export"
+
+  # auto create the directory if it doesn't exist, default is true
+  auto_create_folder: true
+
+  # enable file export, default is false
+  enabled: true
