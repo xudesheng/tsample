@@ -64,7 +64,6 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
       - name: Install dependencies (MacOS)
         run: |
-          xcode-select --install
           brew install openssl
         if: matrix.os == 'macos-latest'
       
