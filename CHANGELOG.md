@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+## [v4.0.1] - 2022-03-11
+
+### Changed
+ - This release is only a test for github action workflow.
+ 
 ## [v4.0.0] - 2022-03-09
 
 ### Changed
