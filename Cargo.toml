@@ -25,3 +25,10 @@ serde_json= "1.0.79"
 anyhow = "1.0"
 serde_yaml = "0.8"
 evmap = "10.0.2"
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
