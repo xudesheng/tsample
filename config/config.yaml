@@ -30,6 +30,7 @@ default_subsystems: &default_subsystems
     split_desc_asprefix: true
   - name: "EventProcessingSubsystem"
   - name: "DataTableProcessingSubsystem"
+    split_desc_asprefix: true
   - name: "PlatformSubsystem"
     enabled: false
   - name: "WSCommunicationsSubsystem"
@@ -64,8 +65,6 @@ thingworx_servers:
     connection_servers:
       # the name of the connection server, an empty list means this tool will scrape the name of all connection servers dynamically.
       names: []
-      # if the connection server name is empty, then the tool will scrape the name of all connection servers by this interval time (seconds).
-      name_refresh_interval: 300
       # the metrics of the connection server, default is all metrics (when it's empty).
       metrics: []
 
@@ -77,8 +76,6 @@ thingworx_servers:
       # so, it makes no sense to put the name in this list until the above issue is fixed.
       # https://thingworx.jira.com/browse/TW-93463
       names: []
-      # if the c3p0 connection pool name is empty, then the tool will scrape the name of all c3p0 connection pools by this interval time (seconds).
-      name_refresh_interval: 300
       # the metrics of the c3p0 connection pool, default is all numeric metrics (when it's empty).
       metrics: []
 
@@ -107,7 +104,7 @@ export_to_influxdb:
   password: "twadmin"
 
   # enable influx export, default is true
-  enabled: false
+  enabled: true
 
 export_to_file:
   # the directory for metrics data, mandatory.
@@ -117,4 +114,4 @@ export_to_file:
   auto_create_folder: true
 
   # enable file export, default is false
-  enabled: true
+  enabled: false

@@ -84,38 +84,16 @@ impl Default for ExportToInfluxDB {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct C3P0Metrics {
     pub names: Vec<String>,
-    pub name_refresh_interval: u32,
     pub metrics: Vec<String>,
 }
 
-impl Default for C3P0Metrics {
-    fn default() -> Self {
-        C3P0Metrics {
-            names: vec![],
-            name_refresh_interval: 300,
-            metrics: vec![],
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct ConnectionServers {
     pub names: Vec<String>,
-    pub name_refresh_interval: u32,
     pub metrics: Vec<String>,
-}
-
-impl Default for ConnectionServers {
-    fn default() -> Self {
-        ConnectionServers {
-            names: vec![],
-            name_refresh_interval: 300,
-            metrics: vec![],
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
