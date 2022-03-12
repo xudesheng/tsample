@@ -8,6 +8,16 @@ From the version `v4.0.0`, this tool will not support to export the OS level met
 2. Thingworx Connection Server
 3. JMX C3P0 metrics (you need to install the extension first.)
 
+## Install
+
+The simplest way to install on the Ubuntu:
+
+```
+wget https://github.com/xudesheng/tsample/releases/download/v4.1.0/install.sh
+chmod a+x install.sh
+./install.sh
+```
+
 
 
 ## How to use

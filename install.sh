@@ -2,40 +2,44 @@
 export DefaultDatabase=thingworx
 export DefaultUser=twadmin
 export DefaultPassword=twadmin
-echo "Installing InfluxDB 1.8.x"
-
-sudo bash -c 'wget -qO- https://repos.influxdata.com/influxdb.key | sudo apt-key add -'
-export DISTRIB_ID=$(lsb_release -si); export DISTRIB_CODENAME=$(lsb_release -sc)
-sudo bash -c "echo \"deb https://repos.influxdata.com/${DISTRIB_ID,,} ${DISTRIB_CODENAME} stable\" > /etc/apt/sources.list.d/influxdb.list"
-sudo apt-get update>/dev/null
-sudo apt-get install -y influxdb
-sudo systemctl unmask influxdb.service
-sudo mkdir -p /opt/db /opt/db/data /opt/db/meta /opt/influx /opt/log
-sud0 chown -R influxdb:influxdb /opt/db /opt/db/data /opt/db/meta /opt/influx /opt/log
-if [ -f /etc/influxdb/influxdb_backup.conf ]; then
-    sudo cp /etc/influxdb/influxdb_backup.conf /etc/influxdb/influxdb.conf
+if [ -f /etc/influxdb/influxdb.conf ]; then
+    echo "InfluxDB already installed"
 else
-    sudo cp /etc/influxdb/influxdb.conf /etc/influxdb/influxdb_backup.conf
+    echo "Installing InfluxDB 1.8.x"
+
+    sudo bash -c 'wget -qO- https://repos.influxdata.com/influxdb.key | sudo apt-key add -'
+    export DISTRIB_ID=$(lsb_release -si); export DISTRIB_CODENAME=$(lsb_release -sc)
+    sudo bash -c "echo \"deb https://repos.influxdata.com/${DISTRIB_ID,,} ${DISTRIB_CODENAME} stable\" > /etc/apt/sources.list.d/influxdb.list"
+    sudo apt-get update>/dev/null
+    sudo apt-get install -y influxdb
+    sudo systemctl unmask influxdb.service
+    sudo mkdir -p /opt/db /opt/db/data /opt/db/meta /opt/influx /opt/log
+    sudo chown -R influxdb:influxdb /opt/db /opt/db/data /opt/db/meta /opt/influx /opt/log
+    if [ -f /etc/influxdb/influxdb_backup.conf ]; then
+        sudo cp /etc/influxdb/influxdb_backup.conf /etc/influxdb/influxdb.conf
+    else
+        sudo cp /etc/influxdb/influxdb.conf /etc/influxdb/influxdb_backup.conf
+    fi
+
+    sudo sed -i '244i \ \ access-log-path = \"/opt/log/access.log\"' /etc/influxdb/influxdb.conf
+    sudo sed -i 's+\ \ dir\ =\ \"/var/lib/influxdb/meta\"+\ \ dir\ =\ \"/opt/db/meta\"+g' /etc/influxdb/influxdb.conf
+    sudo sed -i 's+\ \ dir\ =\ \"/var/lib/influxdb/data\"+\ \ dir\ =\ \"/opt/db/data\"+g' /etc/influxdb/influxdb.conf
+    sudo sed -i 's+\ \ dir\ =\ \"/var/lib/influxdb/wal\"+\ \ dir\ =\ \"/opt/influx/wal\"+g' /etc/influxdb/influxdb.conf
+    sudo systemctl start influxdb
+    echo "wait for 5 seconds before create database"
+    sleep 5
+
+    echo "Creating database:${DefaultDatabase}"
+    influx -execute "create database ${DefaultDatabase}"
+
+    echo "Creating user:${DefaultUser} with password."
+    influx -execute "CREATE USER ${DefaultUser} WITH PASSWORD '${DefaultPassword}' with ALL PRIVILEGES"
+
+    sudo sed -i 's+#\ auth-enabled\ =\ false+auth-enabled\ =\ true+g' /etc/influxdb/influxdb.conf
+
+    echo "enable authentication in InfluxDB"
+    sudo systemctl restart influxdb
 fi
-
-sudo sed -i '244i \ \ access-log-path = \"/opt/log/access.log\"' /etc/influxdb/influxdb.conf
-sudo sed -i 's+\ \ dir\ =\ \"/var/lib/influxdb/meta\"+\ \ dir\ =\ \"/opt/db/meta\"+g' /etc/influxdb/influxdb.conf
-sudo sed -i 's+\ \ dir\ =\ \"/var/lib/influxdb/data\"+\ \ dir\ =\ \"/opt/db/data\"+g' /etc/influxdb/influxdb.conf
-sudo sed -i 's+\ \ dir\ =\ \"/var/lib/influxdb/wal\"+\ \ dir\ =\ \"/opt/influx/wal\"+g' /etc/influxdb/influxdb.conf
-sudo systemctl start influxdb
-echo "wait for 5 seconds before create database"
-sleep 5
-
-echo "Creating database:${DefaultDatabase}"
-influx -execute "create database ${DefaultDatabase}"
-
-echo "Creating user:${DefaultUser} with password."
-influx -execute "CREATE USER ${DefaultUser} WITH PASSWORD '${DefaultPassword}' with ALL PRIVILEGES"
-
-sudo sed -i 's+#\ auth-enabled\ =\ false+auth-enabled\ =\ true+g' /etc/influxdb/influxdb.conf
-
-echo "enable authentication in InfluxDB"
-sudo systemctl restart influxdb
 
 echo "Installing Grafana..."
 GrafanaService="/usr/lib/systemd/system/grafana-server.service"
