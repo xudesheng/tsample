@@ -36,3 +36,18 @@ opt-level = "z"
 lto = true
 codegen-units = 1
 panic = "abort"
+
+[package.metadata.deb]
+name = "tsample"
+extended-description = """\
+A simple tool to collect Thingworx metrics (see https://github.com/xudesheng/tsample)."""
+priority = "optional"
+section = "net"
+depends = "$auto"
+conf-files = ["/etc/tsample/tsample.yaml"]
+maintainer-scripts="assets/debian"
+assets = [
+    ["assets/tsample.service", "/lib/systemd/system/tsample.service", "644"],
+    ["assets/init.yaml", "/etc/tsample/tsample.yaml", "644"],
+    ["target/release/tsample", "/usr/bin/", "755"],
+]

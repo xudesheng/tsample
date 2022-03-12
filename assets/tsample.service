@@ -1,0 +1,13 @@
+[Unit]
+Description=Thingworx tsample Service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/usr/sbin/tsample
+Restart=always
+RestartSec=2
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
