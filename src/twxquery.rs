@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    testconfig::{SubSystem, TestConfig, ThingworxServer},
+    testconfig::{SubSystem, TestConfig, ThingworxServer, ArbitraryMetric},
     payload::{TwxJson, ConnectionServerResults}, jmxquery::refresh_c3p0,
 };
 use chrono::offset::Utc;
@@ -76,10 +76,11 @@ pub async fn launch_twxquery_service(
         for server in tc.thingworx_servers.iter() {
             let test_server = server.clone();
             let test_sender = sender.clone();
+            // regular thingworx subsystem query
             let task = tokio::spawn(async move {
                 match repeated_twxserver_query(&test_server, test_sender,query_timeout).await {
                     Ok(_) => {
-                        log::info!("twxquery service finished smoothly");
+                        // log::info!("twxquery service finished smoothly");
                     }
                     Err(e) => {
                         log::error!("twxquery service error:{:?}", e);
@@ -88,6 +89,8 @@ pub async fn launch_twxquery_service(
             });
 
             tasks.push(task);
+
+            // connection server query
             let local_cxserver_reader = cxserver_reader.clone();
             if let Some(_cxserver_config) = &server.connection_servers {
                 if let Some(ref cache) = local_cxserver_reader.get_one(&server.name){
@@ -112,6 +115,7 @@ pub async fn launch_twxquery_service(
                 }
             }
 
+            // c3p0 query
             let local_c3p0_reader = c3p0_reader.clone();
             if let Some(_c3p0_config) = &server.c3p0_metrics {
                 if let Some(ref cache) = local_c3p0_reader.get_one(&server.name){
@@ -135,6 +139,29 @@ pub async fn launch_twxquery_service(
                     }
                 }
             }
+
+            // arbitrary url metrics query
+            if let Some(ref arbitrary_config) = &server.arbitrary_metrics {
+                for am in arbitrary_config.iter() {
+                    if !am.enabled {
+                        continue;
+                    }
+                    let test_server = server.clone();
+                    let test_sender = sender.clone();
+                    let am = am.clone();
+                    let task = tokio::spawn(async move {
+                        match repeated_arbitrary_query(&test_server, am, test_sender,query_timeout).await {
+                            Ok(_) => {
+                                // log::info!("connection server query finished smoothly");
+                            }
+                            Err(e) => {
+                                log::error!("arbitrary url query error:{:?}", e);
+                            }
+                        }
+                    });
+                    tasks.push(task);
+                }
+            }
         }
         for task in tasks {
             let _ = task.await?;
@@ -155,6 +182,40 @@ pub async fn launch_twxquery_service(
     Ok(())
 }
 
+pub async fn repeated_arbitrary_query(
+    server: &ThingworxServer,
+    am: ArbitraryMetric,
+    sender: Sender<Vec<WriteQuery>>,
+    query_timeout: u64,
+)->anyhow::Result<()>{
+    let url = server.get_arbitrary_access_url(&am.url);
+    let client = reqwest::Client::builder()
+    .timeout(std::time::Duration::from_secs(query_timeout))
+        .danger_accept_invalid_certs(true)
+        .build()?;
+    log::debug!("Arbitrary metrics query service url:{}", url);
+    let headers = construct_headers(&server.app_key);
+    let metrics_name = am.name.clone();
+    let am_subsystem = SubSystem{
+        name: am.name,
+        options: am.options,
+        enabled: am.enabled,
+        sanitize: am.sanitize,
+        split_desc_asprefix: am.split_desc_asprefix
+    };
+
+    let result = match query_subsystem_metrics(client, &url, &headers, &am_subsystem,&server.name,None).await{
+        Ok(result) => result,
+        Err(e) => {
+            log::error!("Arbitrary metrics query service error:{:?}", e);
+            return Ok(());
+        }
+    };
+    log::debug!("Arbitrary metrics:{} metrics result:{}",metrics_name, result.len());
+    let _ = sender.send(result).await;
+
+    Ok(())
+}
 pub async fn repeated_connection_server_query(
     server:&ThingworxServer,
     cxserver_name:&str,

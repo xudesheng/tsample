@@ -139,6 +139,19 @@ impl Default for SubSystem {
 //         }
 //     }
 // }
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ArbitraryMetric {
+    pub name: String,
+    pub url: String,
+    #[serde(default = "default_subsystem_enabled")]
+    pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub options: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub split_desc_asprefix: bool,
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub sanitize: bool,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ThingworxServer {
@@ -156,8 +169,18 @@ pub struct ThingworxServer {
     pub subsystems: Vec<SubSystem>,
     pub connection_servers: Option<ConnectionServers>,
     pub c3p0_metrics: Option<C3P0Metrics>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arbitrary_metrics: Option<Vec<ArbitraryMetric>>,
 }
+
 impl ThingworxServer {
+    pub fn get_arbitrary_access_url(&self, url: &str) -> String {
+        let splitter = if url.starts_with('/') { "" } else { "/" };
+        format!(
+            "{}://{}:{}/{}{}{}",
+            self.protocol, self.host, self.port, self.application, splitter, url
+        )
+    }
     pub fn get_cxserver_query_url(&self) -> String {
         format!(
             "{}://{}:{}/{}/ThingTemplates/ConnectionServer/Services/QueryImplementingThingsWithData",

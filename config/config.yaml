@@ -79,6 +79,19 @@ thingworx_servers:
       # the metrics of the c3p0 connection pool, default is all numeric metrics (when it's empty).
       metrics: []
 
+    # in the case where you want to grab the metrics from any URL, you can use this block.
+    # the url is the full URL after /Thingworx of the metrics.
+    # as long as the result follows the sample JSON format, it will be parsed and scraped. the JSON format should
+    # be like: name, value, description.
+    # url example: /Resources/TS.PersistenceMetrics/Services/GetPersistentPropertyProcessingMetrics
+    # this block is optional.
+    arbitrary_metrics:
+        # the name of the arbitary metric, this is mandatory.
+        # it will also be used as the measurement name in InfluxDB
+      - name: "PersistentPropertyMetrics"
+        # the url of the arbitary metrics, this is mandatory.
+        url: "/Resources/TS.PersistenceMetrics/Services/GetPersistentPropertyProcessingMetrics"
+
   # - name: "Thingworx-Server-2"
   #   host: "localhost"
   #   port: 8081
