@@ -18,7 +18,7 @@ chmod a+x install.sh
 ./install.sh
 ```
 
-
+**Caution**: the above script will install InfluxDB, Grafana and Tsample together. You can manually install them one by one and configure them to your needs.
 
 ## How to use
 
