@@ -24,7 +24,7 @@ jobs:
     strategy:
       matrix:
         #os: [ubuntu-latest, windows-latest, macos-latest]
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
     steps:
     - uses: actions/checkout@v2
     - name: Build
@@ -108,26 +108,26 @@ jobs:
   #     with:
   #       name: windows
   #       path: ./*.msi
-  macosbuild:
-    needs: [build, quickcheck]
-    runs-on: macos-latest
-    name: MacOS
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --release
-    - name: Zip up macos binaries
-      run: 'zip -j tsample_${{needs.quickcheck.outputs.version}}_macos.zip ./target/release/tsampled ./target/release/tsample'
-    - name: Upload Zipped Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: macos
-        path: 'tsample_${{needs.quickcheck.outputs.version}}_macos.zip'
-    - name: Upload Bin Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: macos
-        path: ./target/release/tsample
+  # macosbuild:
+  #   needs: [build, quickcheck]
+  #   runs-on: macos-latest
+  #   name: MacOS
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: Build
+  #     run: cargo build --release
+  #   - name: Zip up macos binaries
+  #     run: 'zip -j tsample_${{needs.quickcheck.outputs.version}}_macos.zip ./target/release/tsampled ./target/release/tsample'
+  #   - name: Upload Zipped Artifact
+  #     uses: actions/upload-artifact@v2
+  #     with:
+  #       name: macos
+  #       path: 'tsample_${{needs.quickcheck.outputs.version}}_macos.zip'
+  #   - name: Upload Bin Artifact
+  #     uses: actions/upload-artifact@v2
+  #     with:
+  #       name: macos
+  #       path: ./target/release/tsample
     # - name: Upload Daemon Artifact
     #   uses: actions/upload-artifact@v2
     #   with:
