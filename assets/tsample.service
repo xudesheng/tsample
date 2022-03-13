@@ -4,7 +4,7 @@ After=network.target
 StartLimitIntervalSec=0
 
 [Service]
-ExecStart=/usr/sbin/tsample
+ExecStart=/usr/bin/tsample
 Restart=always
 RestartSec=2
 Type=simple
