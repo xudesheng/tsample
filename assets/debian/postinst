@@ -1,6 +1,5 @@
 #!/bin/sh
 set -e
-
 # This will only remove masks created by d-s-h on package removal.
 deb-systemd-helper unmask tsample.service > /dev/null || true
 
@@ -9,8 +8,10 @@ if deb-systemd-helper --quiet was-enabled tsample.service
 then
 	# Enables the unit on first installation, creates new
 	# symlinks on upgrades if the unit file has changed.
+	# systemctl --system daemon-reload > /dev/null || true
 	deb-systemd-helper enable tsample.service > /dev/null || true
 	deb-systemd-invoke start tsample
+	# deb-systemd-invoke stop tsample
 else
 	# Update the statefile to add new symlinks (if any), which need to be
 	# cleaned up on purge. Also remove old symlinks.

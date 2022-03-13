@@ -3,6 +3,11 @@ name = "tsample"
 version = "4.1.0"
 authors = ["xudesheng <xudesheng@gmail.com>"]
 edition = "2021"
+readme = "README.md"
+description = "A simple tool to grab Thingworx 8.x performance metrics."
+license = "MIT"
+categories = ["thingworx", "performance", "metrics"]
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -47,7 +52,7 @@ depends = "$auto"
 conf-files = ["/etc/tsample/tsample.yaml"]
 maintainer-scripts="assets/debian"
 assets = [
-    ["assets/tsample.service", "/lib/systemd/system/tsample.service", "644"],
+    ["assets/tsample.service", "/etc/systemd/system/tsample.service", "644"],
     ["assets/init.yaml", "/etc/tsample/tsample.yaml", "644"],
-    ["target/x86_64-unknown-linux-musl/release/tsample", "/usr/bin/", "755"],
+    ["target/x86_64-unknown-linux-musl/release/tsample", "/usr/sbin/", "755"],
 ]
