@@ -49,5 +49,5 @@ maintainer-scripts="assets/debian"
 assets = [
     ["assets/tsample.service", "/lib/systemd/system/tsample.service", "644"],
     ["assets/init.yaml", "/etc/tsample/tsample.yaml", "644"],
-    ["target/release/tsample", "/usr/bin/", "755"],
+    ["target/x86_64-unknown-linux-musl/release/tsample", "/usr/bin/", "755"],
 ]
