@@ -1,9 +1,13 @@
-name: Release
-
+# on:
+#   push:
+#     branches:
+#       - master
 on:
   push:
     tags:
       - v[0-9]+.[0-9]+.[0-9]+
+
+name: Continuous Integration
 
 env:
   CARGO_INCREMENTAL: 0
@@ -16,66 +20,277 @@ defaults:
     shell: bash
 
 jobs:
-  create-release:
-    if: github.repository_owner == 'xudesheng'
+  step-1-release-tag-check:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.rustversion.outputs.rustversion }}
+      release_tag: ${{ steps.release_tag.outputs.release_tag }}
+      
+    steps:
+    - uses: actions/checkout@v2
+    - run: cargo check
+    - run: cargo pkgid
+    - run: 'echo "$(cargo pkgid | cut -d# -f2)"'
+    - run: |
+        RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+        echo tag=${RELEASE_TAG}
+        CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+        echo CARGO_RELEASE="${CARGO_RELEASE}"
+
+        if [[ "${RELEASE_TAG}" != v"${CARGO_RELEASE}" ]]; then
+          echo "::error::tag:${RELEASE_TAG} doesn't match version in cargo: ${CARGO_RELEASE}"
+          exit 1
+        fi
+        parse_changelog_tag="v0.4.7"
+        
+        case "${OSTYPE}" in
+            linux*) target="x86_64-unknown-linux-musl" ;;
+            darwin*) target="x86_64-apple-darwin" ;;
+            cygwin* | msys*) target="x86_64-pc-windows-msvc" ;;
+            *) bail "unrecognized OSTYPE '${OSTYPE}'" ;;
+        esac
+        echo "target=${target}"
+        curl --proto '=https' --tlsv1.2 -fsSL --retry 10 --retry-connrefused "https://github.com/taiki-e/parse-changelog/releases/download/${parse_changelog_tag}/parse-changelog-${target}.tar.gz" \
+        | tar xzf -
+        notes=$(./parse-changelog "./CHANGELOG.md" "${CARGO_RELEASE}")
+
+        echo notes="${notes}"
+        rm -f ./parse-changelog
+        
+    - id: rustversion
+      run: 'echo "::set-output name=rustversion::$(cargo pkgid | cut -d# -f2)"'
+    - id: release_tag
+      run: 'echo "::set-output name=release_tag::${GITHUB_REF#refs/tags/}"'
+
+  step-2-build-test:
+    needs: step-1-release-tag-check
+    name: 'build-test-${{matrix.os}}'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      run: cargo build
+    - name: Run tests
+      run: cargo test
+  
+  step-3-create-release:
+    needs: [step-1-release-tag-check, step-2-build-test]
+    runs-on: ubuntu-latest
+    outputs:
+      RELEASE_ID: ${{ steps.create_draft_release.outputs.id }}
+      UPLOAD_URL: ${{ steps.create_draft_release.outputs.upload_url }}
     steps:
       - uses: actions/checkout@v2
+      - name: Grab Release Varaibles
+        id: prepare_create_release
+        run: |
+          RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+          echo tag=${RELEASE_TAG}
+          CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+          echo CARGO_RELEASE="${CARGO_RELEASE}"
+          parse_changelog_tag="v0.4.7"
+        
+          case "${OSTYPE}" in
+              linux*) target="x86_64-unknown-linux-musl" ;;
+              darwin*) target="x86_64-apple-darwin" ;;
+              cygwin* | msys*) target="x86_64-pc-windows-msvc" ;;
+              *) bail "unrecognized OSTYPE '${OSTYPE}'" ;;
+          esac
+          echo "target=${target}"
+          curl --proto '=https' --tlsv1.2 -fsSL --retry 10 --retry-connrefused "https://github.com/taiki-e/parse-changelog/releases/download/${parse_changelog_tag}/parse-changelog-${target}.tar.gz" \
+          | tar xzf -
+          RELEASE_NOTES=$(./parse-changelog "./CHANGELOG.md" "${CARGO_RELEASE}")
+
+          echo notes="${RELEASE_NOTES}"
+          rm -f ./parse-changelog
+
+          if gh release view "${RELEASE_TAG}" &>/dev/null; then
+              # https://cli.github.com/manual/gh_release_delete
+              gh release delete "${RELEASE_TAG}" -y
+          fi
+
+          RELEASE_TITLE="Release_${RELEASE_TAG}"
+          # gh release create ${draft_option:-} "${RELEASE_TAG}" ${prerelease:-} --title "${RELEASE_TITLE}" --notes "${RELEASE_NOTES:-}"
+          echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
+          echo "RELEASE_TITLE=${RELEASE_TITLE}" >> $GITHUB_ENV
+          echo 'RELEASE_NOTES<<EOF' >> $GITHUB_ENV
+          echo "${RELEASE_NOTES}" >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Draft Release
+        id: create_draft_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          release_name: ${{ env.RELEASE_TITLE }}
+          body: ${{ env.RELEASE_NOTES }}
+          draft: true
+          prerelease: false
+
+  debbuild:
+    needs: [step-3-create-release]
+    runs-on: ubuntu-latest
+    name: x86_64-musl-linux-debian
+    steps:
+    - uses: actions/checkout@v2
+    - name: BuildDeb
+      id: debbuild
+      uses: docker://xudesheng/rustbuilder:x86_64-musl-1.59.0-deb-v1
+      with:
+        args: cargo deb
+    - name: Upload deb file to the release
+      run: |
+        ls -l ./target/debian
+        RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+        echo tag=${RELEASE_TAG}
+        CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+        echo CARGO_RELEASE="${CARGO_RELEASE}"
+        TARGET_FILE_NAME=tsample-${RELEASE_TAG}-x86_64-ubuntu-linux.deb
+        cp ./target/debian/tsample_${CARGO_RELEASE}_amd64.deb ./${TARGET_FILE_NAME}
+        ls -l 
+
+        gh release upload ${RELEASE_TAG} ./${TARGET_FILE_NAME} --clobber
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    
+  
+  x86_64-unknown-linux-musl:
+    needs: [step-3-create-release]
+    runs-on: ubuntu-latest
+    name: x86_64-unknown-linux-musl
+    steps:
+    - uses: actions/checkout@v2
+    - name: X86_64-StaticBinaryBuild
+      id: amd64staticbuild
+      uses: docker://xudesheng/rustbuilder:x86_64-musl-1.59.0-deb-v1
+      with:
+        args: cargo build --release --target=x86_64-unknown-linux-musl
+    - name: Upload linux-musl binary file to the release
+      run: |
+        TARGET=x86_64-unknown-linux-musl
+        ls -l ./target/${TARGET}/release
+        RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+        echo tag=${RELEASE_TAG}
+        CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+        echo CARGO_RELEASE="${CARGO_RELEASE}"
+
+        TARGET_FILE_NAME=tsample-${RELEASE_TAG}-${TARGET}.tar.gz
+
+        tar czf ./${TARGET_FILE_NAME} ./target/${TARGET}/release/tsample
+        ls -l
+
+        gh release upload ${RELEASE_TAG} ./${TARGET_FILE_NAME} --clobber
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  
+  windowsbuild:
+    name: windowsbuild
+    if: github.repository_owner == 'xudesheng'
+    needs:
+      - step-3-create-release
+      - step-1-release-tag-check
+    runs-on: windows-latest
+    env:
+      RUSTFLAGS: '-C target-feature=+crt-static'
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install 7Zip PowerShell Module
+        shell: powershell
+        run: Install-Module 7Zip4PowerShell -Force -Verbose
       - uses: taiki-e/github-actions/install-rust@main
         with:
           toolchain: stable
-      - run: cargo package
-      - uses: taiki-e/create-gh-release-action@v1
-        with:
-          changelog: CHANGELOG.md
-          title: $version
+      - name: build and check
+        run: |
+          cargo build --release
+          RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+          echo tag=${RELEASE_TAG}
+          CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+          echo CARGO_RELEASE="${CARGO_RELEASE}"
+
+          ls -l ./target/release/
+      - run: 'powershell Compress-7Zip ./target/release/tsample.exe -ArchiveFileName tsample-${{needs.step-1-release-tag-check.outputs.release_tag}}-x86_64-windows.zip -Format Zip'
+      - name: Upload windows binary file to the release
+        run: |
+          ls -l ./target/release
+          RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+          echo tag=${RELEASE_TAG}
+          CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+          echo CARGO_RELEASE="${CARGO_RELEASE}"
+
+          TARGET_FILE_NAME=tsample-${RELEASE_TAG}-x86_64-unknown-linux-musl.tar.gz
+
+          ls -l .
+          
+          gh release upload ${RELEASE_TAG} tsample-${RELEASE_TAG}-x86_64-windows.zip --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # - run: cargo publish
-      #   env:
-      #     CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  upload-assets:
-    name: ${{ matrix.target }}
+      
+
+  macbuild:
+    name: macbuild
     if: github.repository_owner == 'xudesheng'
     needs:
-      - create-release
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-          - target: aarch64-unknown-linux-gnu
-          - target: aarch64-apple-darwin
-            os: macos-latest
-          # - target: x86_64-pc-windows-gnu
-          #   os: windows-latest
-          - target: x86_64-apple-darwin
-            os: macos-latest
-          # - target: x86_64-pc-windows-msvc
-          #   os: windows-latest
-          # - target: x86_64-unknown-linux-musl
-    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
+      - step-3-create-release
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install dependencies (linux)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev
-        if: matrix.os == 'ubuntu-latest'
       - name: Install dependencies (MacOS)
         run: |
           brew install openssl
-        if: matrix.os == 'macos-latest'
-      
       - uses: taiki-e/github-actions/install-rust@main
         with:
           toolchain: stable
-      - uses: taiki-e/upload-rust-binary-action@v1
-        with:
-          bin: tsample
-          target: ${{ matrix.target }}
-          tar: unix
-          zip: windows
+      - name: build and check result
+        run: |
+          cargo build --release
+          ls -l ./target/release/
+          strip ./target/release/tsample
+          ls -l ./target/release
+      - name: Upload MacOS binary file to the release
+        run: |
+          ls -l ./target/release
+          RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+          echo tag=${RELEASE_TAG}
+          CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+          echo CARGO_RELEASE="${CARGO_RELEASE}"
+
+          TARGET_FILE_NAME=tsample-${RELEASE_TAG}-x86_64-macos.tar.gz
+
+          tar czf ./${TARGET_FILE_NAME} ./target/release/tsample
+          ls -l 
+
+          gh release upload ${RELEASE_TAG} ./${TARGET_FILE_NAME} --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # CARGO_PROFILE_RELEASE_LTO: true
+
+      
+
+  publish_release:
+    needs: [step-3-create-release, x86_64-unknown-linux-musl, debbuild,windowsbuild,macbuild]
+    runs-on: ubuntu-latest
+    steps:
+      # - uses: actions/checkout@v2
+      - name: Display Release ID
+        id: retrieve_release_id
+        run: 'echo release_id: ${{ needs.step-3-create-release.outputs.RELEASE_ID }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Release
+        id: publish_release
+        uses: eregon/publish-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release_id: ${{ needs.step-3-create-release.outputs.RELEASE_ID }}
+
+  
