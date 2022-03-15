@@ -6,19 +6,44 @@ From the version `v4.0.0`, this tool will not support to export the OS level met
 
 1. Thingworx Subsystems
 2. Thingworx Connection Server
-3. JMX C3P0 metrics (you need to install the extension first.)
+3. JMX C3P0 metrics (you need to install the specific extension first.)
+4. Persistent Property metrics (you need to install the specifc extension first.)
+
+* reaching out to PTC TS or your service provider to get the extensions.
 
 ## Install
 
-The simplest way to install on the Ubuntu:
+### Provided builds
+- [x] Debian format (`deb`) package, best for Debian based systems, like: Ubuntu.
+- [ ] RPM format (`rpm`) package, best for RedHat based systems, like: Redhat. Please submit an issue to request this build, and tell me which distribution you are using, like: CentOS, Redhat, Fedora etc. The RPM build will be slightly different between the distributions.
+- [x] Windows (`exe`) package, best for Windows based systems, x86_64 only.
+- [x] MacOS executable binary, x86_64.
+- [x] MacOS Apple Silicon (M1) binary, aarch64. This build will be added manually. In case I forgot to add this build, please submit an issue to request this build.
+- [x] Linux aarch64 binary. This build will be added manually. In case I forgot to add this build, please submit an issue to request this build.
 
-```
-wget https://github.com/xudesheng/tsample/releases/download/v4.1.0/install.sh
-chmod a+x install.sh
-./install.sh
-```
+** All Linux build will be statically linked. **
 
-**Caution**: the above script will install InfluxDB, Grafana and Tsample together. You can manually install them one by one and configure them to your needs.
+** Windows build will be statically linked. **
+
+### Installation
+
+#### Debian (Ubuntu) based Linux installation
+
+1. Download the `deb` format from the latest release
+2. ```sudo dpkg -i <the downloaded deb file>```
+3. Configure `/etc/tsample/tsample.yaml` based on your needs.
+4. ```sudo systemctl enable tsample``` (this only needs one time)
+5. ```sudo systemctl start tsample```
+
+#### Manually Install and configuration
+
+1. The `install.sh` can be a good reference if you are installing on Linux.
+2. Download the build based on your OS
+3. Export a sample configuration file: ```./tsample -c myconfig.yaml -e```
+4. Modify your configuration file: `myconfig.yaml`
+5. Start to execute it: ```./tsample -c myconfig.yaml```
+
+
 
 
 ## How to use

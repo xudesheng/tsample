@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+## [v4.1.2] - 2022-03-11
+
+### Added
+ - Added `deb` format for downloading. Debian based user can directly install this package.
+
+### Changed
+ - x86_64 builds will be generated automatically via github actions.
+ - aarch64 (including Apple Silicon) builds will be generated manually.
+
 ## [v4.1.1] - 2022-03-11
 
 ### Changed
