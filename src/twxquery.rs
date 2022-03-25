@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     testconfig::{SubSystem, TestConfig, ThingworxServer, ArbitraryMetric},
-    payload::{TwxJson, ConnectionServerResults}, jmxquery::refresh_c3p0,
+    payload::{TwxJson, ConnectionServerResults}, jmxquery::{ refresh_jmx},
 };
 use chrono::offset::Utc;
 use chrono::DateTime;
@@ -47,23 +47,23 @@ pub async fn launch_twxquery_service(
         });
     }
 
-    let (c3p0_reader,mut c3p0_writer) = evmap::new();
-    let mut need_refresh_c3p0 = false;
+    let (jmx_reader,mut jmx_writer) = evmap::new();
+    let mut need_refresh_jmx = false;
     for server in tc.thingworx_servers.iter() {
-        if let Some(ref c3p0_config) = server.c3p0_metrics {
-            if c3p0_config.names.is_empty() {
-                log::info!("no c3p0 name defined under thingworx server:{:?}", server.name);
-                need_refresh_c3p0 = true;
+        if let Some(ref jmx_config) = server.jmx_metrics {
+            if !jmx_config.is_empty() {
+                log::info!("JMX has been configured, JMX objectName needs to be refreshed from thingworx server:{:?}", server.name);
+                need_refresh_jmx = true;
             }
-            c3p0_writer.insert(server.name.clone(), (c3p0_config.names.clone(),c3p0_config.metrics.clone()));
+            
         }
     }
-    c3p0_writer.refresh();
-    if need_refresh_c3p0 {
-        log::info!("need to refresh c3p0 name");
-        let tc_c3p0 = tc.clone();
+    jmx_writer.refresh();
+    if need_refresh_jmx {
+        log::info!("need to refresh JMX object name");
+        let tc_jmx = tc.clone();
         tokio::spawn(async move {
-            let _= refresh_c3p0(tc_c3p0,  c3p0_writer,jmx_refresh_sleeping).await;
+            let _= refresh_jmx(tc_jmx,  jmx_writer,jmx_refresh_sleeping).await;
         });
     }
 
@@ -116,22 +116,30 @@ pub async fn launch_twxquery_service(
             }
 
             // c3p0 query
-            let local_c3p0_reader = c3p0_reader.clone();
-            if let Some(_c3p0_config) = &server.c3p0_metrics {
-                if let Some(ref cache) = local_c3p0_reader.get_one(&server.name){
-                    let names = cache.0.clone();
-                    log::debug!("Server:{} has c3p0:{:?}", server.name, names);
-                    for name in names {
+            let local_jmx_reader = jmx_reader.clone();
+            if let Some(_jmx_config) = &server.jmx_metrics {
+                if let Some(ref cache) = local_jmx_reader.get_one(&server.name){
+                    // let jmx_metrics_vec = cache.clone();
+                    log::debug!("Server:{} has jmx metrics:{:?}", server.name, cache);
+                    for (measurement, object_name_list, name_alternative, metrics) in cache.iter() {
                         let test_server = server.clone();
                         let test_sender = sender.clone();
-                        let metrics = cache.1.clone();
+                        let measurement = measurement.clone();
+                        let object_name_list = object_name_list.clone();
+                        let name_alternative = name_alternative.clone();
+                        let metrics = metrics.clone();
                         let task = tokio::spawn(async move {
-                            match crate::jmxquery::repeated_c3p0_query(&test_server, &name, metrics, test_sender,query_timeout).await {
+                            match crate::jmxquery::repeated_jmx_query(&test_server,
+                                 measurement,
+                                 object_name_list,
+                                 name_alternative,
+                                 metrics, 
+                                 test_sender,query_timeout).await {
                                 Ok(_) => {
                                     // log::info!("connection server query finished smoothly");
                                 }
                                 Err(e) => {
-                                    log::error!("connection server query error:{:?}", e);
+                                    log::error!("JMX query error:{:?}", e);
                                 }
                             }
                         });

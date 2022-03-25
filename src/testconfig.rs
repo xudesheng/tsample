@@ -84,10 +84,23 @@ impl Default for ExportToInfluxDB {
     }
 }
 
+// #[derive(Serialize, Deserialize, Debug, Clone, Default)]
+// pub struct C3P0Metrics {
+//     pub names: Vec<String>,
+//     pub metrics: Vec<String>,
+// }
+
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
-pub struct C3P0Metrics {
-    pub names: Vec<String>,
+pub struct JmxMetric {
+    pub name: String,
+    pub object_name_pattern: String,
+    pub name_label_alternative: Option<String>,
+    #[serde(default = "default_metrics")]
     pub metrics: Vec<String>,
+}
+
+fn default_metrics() -> Vec<String> {
+    vec![]
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -167,8 +180,11 @@ pub struct ThingworxServer {
     pub application: String,
     pub app_key: String,
     pub subsystems: Vec<SubSystem>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub connection_servers: Option<ConnectionServers>,
-    pub c3p0_metrics: Option<C3P0Metrics>,
+    // pub c3p0_metrics: Option<C3P0Metrics>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub jmx_metrics: Option<Vec<JmxMetric>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub arbitrary_metrics: Option<Vec<ArbitraryMetric>>,
 }

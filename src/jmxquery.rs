@@ -1,3 +1,15 @@
+use crate::{
+    payload::{MBeansAttributeInfo, QueryMBeansTree},
+    testconfig::{JmxMetric, SubSystem, TestConfig, ThingworxServer},
+    twxquery::construct_headers,
+};
+use chrono::offset::Utc;
+use chrono::DateTime;
+use influxdb::{InfluxDbWriteable, Timestamp, WriteQuery};
+use lazy_static::lazy_static;
+use regex::Regex;
+use reqwest::{header::HeaderMap, Client};
+
 use std::{
     collections::HashMap,
     sync::{
@@ -7,36 +19,27 @@ use std::{
     time::SystemTime,
 };
 
-use crate::{
-    payload::{MBeansAttributeInfo, QueryMBeansTree},
-    testconfig::{SubSystem, TestConfig, ThingworxServer},
-    twxquery::construct_headers,
-};
-use chrono::offset::Utc;
-use chrono::DateTime;
-use influxdb::{InfluxDbWriteable, Timestamp, WriteQuery};
-use reqwest::{header::HeaderMap, Client};
-use serde_json::Value as JsonValue;
-
-pub async fn refresh_c3p0(
+pub type JmxObjectNameList = Vec<(
+    String,         // Measurement Name eventually, like: jmx_c3p0_connections, jmx_memory_status
+    Vec<String>, // list of objectNames, like: ["java.lang:type=MemoryPool,name=G1 Survivor Space","java.lang:type=MemoryPool,name=G1 Old Gen"]
+    Option<String>, // optional tag to grab name label, default is "name". all value has to be string
+    Vec<String>,    // list of query result to filter. default is empty, which means no filter
+)>;
+pub async fn refresh_jmx(
     tc: TestConfig,
-    mut writer: evmap::WriteHandle<String, (Vec<String>, Vec<String>)>,
+    mut writer: evmap::WriteHandle<String, JmxObjectNameList>,
     sleeping: Arc<AtomicBool>,
 ) -> anyhow::Result<()> {
     loop {
         for server in tc.thingworx_servers.iter() {
-            if let Some(ref c3p0_config) = server.c3p0_metrics {
-                // if it has a name list configured, then we ignore it.
-                if !c3p0_config.names.is_empty() {
-                    continue;
-                }
+            if let Some(ref jmx_configs) = server.jmx_metrics {
                 let headers = construct_headers(&server.app_key);
                 let url = server.get_query_mbeanstree_url();
                 let client = reqwest::Client::builder()
                     .timeout(std::time::Duration::from_secs(20))
                     .danger_accept_invalid_certs(true)
                     .build()?;
-                log::debug!("JMX MBeans query url:{}", url);
+                log::debug!("JMX MBeans query url:{},jmx_configs:{:?}", url, jmx_configs);
                 let res = match client.post(url).headers(headers.clone()).send().await {
                     Ok(res) => res,
                     Err(e) => {
@@ -62,21 +65,36 @@ pub async fn refresh_c3p0(
                     }
                 };
 
-                let mut names = vec![];
-                for row in mbeans.rows {
-                    if row
-                        .object_name
-                        .starts_with("com.mchange.v2.c3p0:type=PooledDataSource,")
-                    {
-                        names.push(row.object_name.clone());
+                let mut jmx_metrics_vec = Vec::new();
+                for JmxMetric {
+                    name,
+                    object_name_pattern,
+                    name_label_alternative,
+                    metrics,
+                } in jmx_configs.iter()
+                {
+                    let mut object_names = vec![];
+                    for row in mbeans.rows.iter() {
+                        if row.object_name.starts_with(object_name_pattern) {
+                            object_names.push(row.object_name.clone());
+                        }
                     }
+                    log::info!(
+                        "JMX MBeans query :{} success, got {} JMX MBean(s) for {},metrics:{:?}",
+                        server.name,
+                        object_names.len(),
+                        name,
+                        metrics
+                    );
+                    jmx_metrics_vec.push((
+                        name.to_owned(),
+                        object_names,
+                        name_label_alternative.clone(),
+                        metrics.clone(),
+                    ));
                 }
-                log::info!(
-                    "JMX MBeans query :{} success, got {} C3P0 MBean(s)",
-                    server.name,
-                    names.len()
-                );
-                writer.update(server.name.clone(), (names, c3p0_config.metrics.clone()));
+
+                writer.update(server.name.clone(), jmx_metrics_vec);
             }
         }
         writer.refresh();
@@ -87,9 +105,11 @@ pub async fn refresh_c3p0(
     // Ok(())
 }
 
-pub async fn repeated_c3p0_query(
+pub async fn repeated_jmx_query(
     server: &ThingworxServer,
-    c3p0_name: &str,
+    measurement: String,
+    object_name_list: Vec<String>,
+    name_alternative: Option<String>,
     metrics: Vec<String>,
     sender: tokio::sync::mpsc::Sender<Vec<WriteQuery>>,
     query_timeout: u64,
@@ -99,55 +119,64 @@ pub async fn repeated_c3p0_query(
         .timeout(std::time::Duration::from_secs(query_timeout))
         .danger_accept_invalid_certs(true)
         .build()?;
-    log::debug!("JMX MBeans query url:{}", url);
+    log::debug!("JMX MBeans query url:{},metrics:{}", url, metrics.join(","));
     let headers = construct_headers(&server.app_key);
-    let c3p0_subsystem = SubSystem {
-        name: "C3P0PooledDataSource".to_string(),
-        options: Some(metrics),
-        enabled: true,
-        sanitize: false,
-        split_desc_asprefix: false,
-    };
-    let mut payload = HashMap::new();
-    payload.insert("notWritableOnly", JsonValue::Bool(true));
-    payload.insert("showPreview", JsonValue::Bool(true));
-    payload.insert("mbeanName", JsonValue::String(c3p0_name.to_string()));
+    for object_name in object_name_list.iter() {
+        let jmx_subsystem = SubSystem {
+            name: measurement.clone(),
+            options: Some(metrics.clone()),
+            enabled: true,
+            sanitize: false,
+            split_desc_asprefix: false,
+        };
 
-    let payload = serde_json::json!({
-        "notWritableOnly": true,
-        "showPreview": true,
-        "mbeanName": c3p0_name,
-    });
+        let payload = serde_json::json!({
+            "notWritableOnly": true,
+            "showPreview": true,
+            "mbeanName": object_name.clone(),
+        });
 
-    let mut additional_tags = HashMap::new();
-    additional_tags.insert("c3p0name".to_string(), c3p0_name.to_string());
-    let result = match query_c3p0_metrics(
-        client,
-        &url,
-        &headers,
-        payload.to_string(),
-        &c3p0_subsystem,
-        &server.name,
-        Some(additional_tags),
-    )
-    .await
-    {
-        Ok(result) => result,
-        Err(e) => {
-            log::error!("JMX MBeans query error:{:?}", e);
-            return Ok(());
+        let mut additional_tags = HashMap::new();
+        lazy_static! {
+            static ref RE: Regex = Regex::new(r"name=(.*?)(&|$|,)").unwrap();
         }
-    };
-    log::debug!(
-        "JMX MBeans query:{} metrics result:{}",
-        c3p0_name,
-        result.len()
-    );
-    let _ = sender.send(result).await;
+        let sub_name = match RE.captures(object_name.as_str()) {
+            None => "Default".to_owned(),
+            Some(caps) => caps[1].to_string(),
+        };
+        additional_tags.insert("sub_name".to_string(), sub_name);
+
+        let result = match query_jmx_metrics(
+            client.clone(),
+            &url,
+            &headers,
+            payload.to_string(),
+            &jmx_subsystem,
+            &server.name,
+            Some(additional_tags),
+            name_alternative.clone(),
+        )
+        .await
+        {
+            Ok(result) => result,
+            Err(e) => {
+                log::error!("JMX MBeans query error:{:?}", e);
+                return Ok(());
+            }
+        };
+        log::debug!(
+            "JMX MBeans query:{} metrics result:{}",
+            object_name,
+            result.len()
+        );
+        let _ = sender.send(result).await;
+    }
+
     Ok(())
 }
 
-async fn query_c3p0_metrics(
+#[allow(clippy::too_many_arguments)]
+async fn query_jmx_metrics(
     client: Client,
     url: &str,
     headers: &HeaderMap,
@@ -155,6 +184,7 @@ async fn query_c3p0_metrics(
     subsystem: &SubSystem,
     platform: &str,
     additional_tags: Option<HashMap<String, String>>,
+    name_alternative: Option<String>,
 ) -> anyhow::Result<Vec<WriteQuery>> {
     let mut result = vec![];
     let response_start = SystemTime::now();
@@ -162,6 +192,7 @@ async fn query_c3p0_metrics(
     // if this step is error, likely the server is not responsive.
     // so we should not continue to query the metrics.
     // for the rest of the metrics, we will just handle the error within this block.
+    let payload_backup = payload.clone();
     let res = client
         .post(url)
         .headers(headers.clone())
@@ -170,7 +201,11 @@ async fn query_c3p0_metrics(
         .await?;
     if !res.status().is_success() {
         // return Err(anyhow::anyhow!("Subsystem metrics query:{} failed", url));
-        log::error!("Subsystem metrics query:{} failed", url);
+        log::error!(
+            "Subsystem metrics query:{} failed,payload:{}",
+            url,
+            payload_backup
+        );
         return Ok(result); // return empty result
     }
 
@@ -178,9 +213,10 @@ async fn query_c3p0_metrics(
         Ok(mbeanattinfo) => mbeanattinfo,
         Err(e) => {
             log::error!(
-                "Subsystem metrics query:{} failed to parse result:{:?}",
+                "Subsystem metrics query:{} failed to parse result:{:?}, payload:{}",
                 url,
-                e
+                e,
+                payload_backup
             );
             return Ok(result); // return empty result
         }
@@ -197,15 +233,6 @@ async fn query_c3p0_metrics(
         .into_query(&subsystem.name)
         // .add_tag("Provider", provider.to_string())
         .add_tag("Platform", platform.to_string());
-    if let Some(ref additional_tags) = additional_tags {
-        // Metrics from all connection servers will be in a dummy subsystem 'ConnectionServer'.
-        // Therefore, it requires an additional tag to be added, which is the connection server name.
-        for (key, value) in additional_tags {
-            // this can be optimized in future to avoid copy.
-            // it should directly consume the hashmap.
-            query = query.add_tag(key.clone(), value.clone());
-        }
-    }
 
     // we can consume all rows here.
     log::debug!(
@@ -213,9 +240,19 @@ async fn query_c3p0_metrics(
         subsystem.name,
         mbeanattinfo.rows.len()
     );
+
+    let mut new_sub_name = "Default".to_owned();
     for row in mbeanattinfo.rows {
         // only process metrics if the subsystem has limited options for metrics names.
         if let Some(ref options) = subsystem.options {
+            if !options.is_empty() {
+                log::trace!(
+                    "options:{:?}, row.name:{},row_type:{}",
+                    options,
+                    row.name,
+                    row.type_
+                );
+            }
             if !options.is_empty() && !options.contains(&row.name) {
                 continue;
             }
@@ -224,18 +261,65 @@ async fn query_c3p0_metrics(
             continue;
         }
         log::trace!("JMX metrics query, row:{:?}", row);
-        if row.type_ == "int" {
-            let value = row.preview.parse::<i32>().unwrap_or(0);
-            query = query.add_field(row.name, value);
-        } else if row.type_ == "long" {
-            let value = row.preview.parse::<i64>().unwrap_or(0);
-            query = query.add_field(row.name, value);
-        } else if row.type_ == "float" {
-            let value = row.preview.parse::<f32>().unwrap_or(0.0);
-            query = query.add_field(row.name, value);
+        if let Some(ref name_alternative) = name_alternative {
+            if name_alternative == &row.name {
+                new_sub_name = format!("sub_{}", row.preview);
+                new_sub_name = new_sub_name
+                    .replace(' ', "_")
+                    .replace('.', "_")
+                    .replace(',', "_")
+                    .replace('[', "_")
+                    .replace(']', "_");
+            }
+        }
+        if row.type_ == "boolean" {
+            match row.preview.parse::<bool>() {
+                Err(_) => continue,
+                Ok(value) => {
+                    query = query.add_field(row.name, value);
+                }
+            }
+        } else if row.type_ == "int" || row.type_ == "java.lang.Integer" {
+            match row.preview.parse::<i32>() {
+                Err(_) => continue,
+                Ok(value) => {
+                    query = query.add_field(row.name, value);
+                }
+            }
+        } else if row.type_ == "long" || row.type_ == "java.lang.Long" {
+            match row.preview.parse::<i64>() {
+                Err(_) => continue,
+                Ok(value) => {
+                    query = query.add_field(row.name, value);
+                }
+            }
+        } else if row.type_ == "float" || row.type_ == "java.lang.Float" {
+            match row.preview.parse::<f32>() {
+                Err(_) => continue,
+                Ok(value) => {
+                    query = query.add_field(row.name, value);
+                }
+            }
         } else {
             let value = row.preview.to_string();
             query = query.add_field(row.name, value);
+        }
+    }
+
+    if let Some(ref additional_tags) = additional_tags {
+        // Metrics from all JMX metrics will be in a dummy subsystem.
+        // Therefore, it requires an additional tag to be added, which is the connection server name.
+        let mut need_replace_subname = name_alternative.is_some();
+        for (key, value) in additional_tags {
+            // this can be optimized in future to avoid copy.
+            // it should directly consume the hashmap.
+
+            if need_replace_subname && key == "sub_name" {
+                need_replace_subname = false;
+                query = query.add_tag(key.clone(), new_sub_name.clone());
+                continue;
+            }
+            query = query.add_tag(key.clone(), value.clone());
         }
     }
 

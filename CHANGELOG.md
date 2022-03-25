@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+## [v4.2.0] - 2022-03-25
+
+### Added
+ - Added `jmx_metrics` in the config, you can grab all possible jmx metrics now.
+ - added `jmx_c3p0_connections` and `jmx_memory_status` as two examples in the config.
+
+### Deleted
+ - deleted `c3p0_metrics` in the config, it is not used anymore.
+
 ## [v4.1.2] - 2022-03-11
 
 ### Added

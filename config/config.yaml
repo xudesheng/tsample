@@ -68,16 +68,28 @@ thingworx_servers:
       # the metrics of the connection server, default is all metrics (when it's empty).
       metrics: []
 
-    # the c3p0metrics block is optional. If it's not presented, then no c3p0 metrics will be scraped.
-    # You have to install specific extension in Thingworx 8.5 or 8.4 to use this feature.
-    c3p0_metrics:
-      # the name of the c3p0 connection pool, an empty list means this tool will scrape the name of all c3p0 connection pools dynamically.
-      # apprently, the name of the c3p0 driver is a random string and it will be different after each restart.
-      # so, it makes no sense to put the name in this list until the above issue is fixed.
-      # https://thingworx.jira.com/browse/TW-93463
-      names: []
-      # the metrics of the c3p0 connection pool, default is all numeric metrics (when it's empty).
-      metrics: []
+    # this jmx_metrics is optional, you have to install specific jmx extension in order to use this block.
+    jmx_metrics:
+    # the name is mandatory since it will be used as the measurement name in InfluxDB.
+    # a "sub_name" label will be added into the measurements. the value will be the name of c3p0 or memory status or other name from the objectNameField.
+    # if you defined "name_label_alternative", then the value of the "sub_name" label will be "sub_{value}".
+    - name: jmx_c3p0_connections
+      # the jmx_object_name is mandatory since it will be used to get the metrics from JMX.
+      # for simplicity, we will use this value to search any object name starts with it.
+      object_name_pattern: "com.mchange.v2.c3p0:type=PooledDataSource,identityToken"
+
+      # this is optional. if you want to use the value from a different object in the query result as the sub_name label.
+      # caution: the name for 'name_label_alternative' must be in the next list if the next list is not empty.
+      #name_label_alternative: "threadPoolSize"
+
+      # this list is optional, if you want to filter the metrics by the name of the object.
+      # if it's empty, then all metrics will be scraped.
+      #metrics: ["threadPoolSize","numConnectionsAllUsers","statementCacheNumConnectionsWithCachedStatementsDefaultUser","allUsers","statementCacheNumStatementsDefaultUser"]
+    - name: jmx_memory_status
+      # the sub_name of this measurement will be like: G1 Old Gen, G1 Survivor Space etc.
+      object_name_pattern: "java.lang:type=MemoryPool,name="
+      # you can add/remove field in the blow list, or make it empty to include all fields.
+      metrics: ["PeakUsage_committed","PeakUsage_init","Valid","PeakUsage_used","Usage_committed","Usage_used","Usage_init","CollectionUsage_used","CollectionUsage_committed","CollectionUsage_init","CollectionUsageThresholdCount",]
 
     # in the case where you want to grab the metrics from any URL, you can use this block.
     # the url is the full URL after /Thingworx of the metrics.

@@ -54,6 +54,11 @@ pub struct MBeansAttributeInfo {
 pub struct MBeansAttributeInfoRow {
     pub name: String,
     pub object_name: String,
+    #[serde(default = "default_preview")]
     pub preview: String,
     pub type_: String,
+}
+
+fn default_preview() -> String {
+    "".to_string()
 }
