@@ -14,8 +14,8 @@ impl Default for Owner {
     fn default() -> Self {
         Owner {
             name: "Desheng Xu".to_string(),
-            email: "dxu@ptc.com".to_string(),
-            organization: "PTC Inc.".to_string(),
+            email: "xudesheng@gmail.com".to_string(),
+            organization: "Demotest IO Inc.".to_string(),
         }
     }
 }
