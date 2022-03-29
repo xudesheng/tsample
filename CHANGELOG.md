@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+## [v4.2.1] - 2022-03-25
+
+### Changed
+ - Removed company Email address from the sample configuration file.
+
 ## [v4.2.0] - 2022-03-25
 
 ### Added

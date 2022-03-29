@@ -1,8 +1,8 @@
 # Modify this with your name and email address, but it's optional.
 owner:
   name: "Desheng Xu"
-  email: "dxu@ptc.com"
-  organization: "PTC Inc."
+  email: "xudesheng@gmail.com"
+  organization: "Demotest Io Inc."
 
 # scrap interval time in seconds, optional, default is 30 seconds.
 scrap_interval: 30
@@ -44,7 +44,7 @@ default_subsystems: &default_subsystems
 thingworx_servers:
   - name: "platform1"
     # the hostname or IP address of the Thingworx Server, default is localhost
-    host: "dxu-twx.demotest.io"
+    host: "yourserver.demotest.io"
     # the port of the Thingworx Server, default is 8080
     port: 443
     # the protocol of the Thingworx Server, default is http. valid values are http and https
