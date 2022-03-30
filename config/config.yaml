@@ -1,8 +1,8 @@
 # Modify this with your name and email address, but it's optional.
 owner:
   name: "Desheng Xu"
-  email: "dxu@ptc.com"
-  organization: "PTC Inc."
+  email: "xudesheng@gmail.com"
+  organization: "Demotest Io Inc."
 
 # scrap interval time in seconds, optional, default is 30 seconds.
 scrap_interval: 30
