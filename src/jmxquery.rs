@@ -300,6 +300,13 @@ async fn query_jmx_metrics(
                     query = query.add_field(row.name, value);
                 }
             }
+        } else if row.type_ == "double" || row.type_ == "java.lang.Double" {
+            match row.preview.parse::<f64>() {
+                Err(_) => continue,
+                Ok(value) => {
+                    query = query.add_field(row.name, value);
+                }
+            }
         } else {
             let value = row.preview.to_string();
             query = query.add_field(row.name, value);
