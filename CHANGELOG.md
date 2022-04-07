@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+## [v4.2.2] - 2022-04-07
+
+### Changed
+ - Support "double" or "java.lang.Double" for the "f64" type. it will be a float in InfluxDB.
+
 ## [v4.2.1] - 2022-03-25
 
 ### Changed
