@@ -2,6 +2,7 @@ mod app;
 mod influx;
 mod jmxquery;
 mod payload;
+mod tabular;
 mod testconfig;
 mod twxquery;
 
