@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+## [v4.2.3] - 2022-04-07
+
+### Added
+ - Limited support to flatten the Java TabularData format into InfluxDB Measurement for GC metrics.
+ - Added sample of `jmx_garbagecollector_status` to capture the GC metrics in the sample configuration file.
+
 ## [v4.2.2] - 2022-04-07
 
 ### Changed

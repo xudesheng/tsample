@@ -91,6 +91,13 @@ thingworx_servers:
       # you can add/remove field in the blow list, or make it empty to include all fields.
       metrics: ["PeakUsage_committed","PeakUsage_init","Valid","PeakUsage_used","Usage_committed","Usage_used","Usage_init","CollectionUsage_used","CollectionUsage_committed","CollectionUsage_init","CollectionUsageThresholdCount",]
 
+    # this jmx_metrics is optional, you have to install specific jmx extension in order to use this block.
+    # it will grab both "G1 Old Generation" and "G1 Young Generation" metrics in different sub_name.
+    # the original data format is Java TabularData, which is not supported by InfluxDB. therefore, it will be flattened into a single line.
+    - name: jmx_garbagecollector_status
+      object_name_pattern: "java.lang:type=GarbageCollector,name=G1"
+      metrics: ["LastGcInfo_duration","LastGcInfo_endTime","LastGcInfo_memoryUsageAfterGc","LastGcInfo_memoryUsageBeforeGc","LastGcInfo_startTime","CollectionCount","CollectionTime"]
+
     # in the case where you want to grab the metrics from any URL, you can use this block.
     # the url is the full URL after /Thingworx of the metrics.
     # as long as the result follows the sample JSON format, it will be parsed and scraped. the JSON format should
