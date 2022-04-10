@@ -1,5 +1,6 @@
 use crate::{
     payload::{MBeansAttributeInfo, QueryMBeansTree},
+    tabular::parse_tabular_data,
     testconfig::{JmxMetric, SubSystem, TestConfig, ThingworxServer},
     twxquery::construct_headers,
 };
@@ -305,6 +306,45 @@ async fn query_jmx_metrics(
                 Err(_) => continue,
                 Ok(value) => {
                     query = query.add_field(row.name, value);
+                }
+            }
+        } else if row.type_ == "javax.management.openmbean.TabularData" {
+            let mut result = match parse_tabular_data(row.preview.as_str()) {
+                Ok(result) => result,
+                Err(e) => {
+                    log::error!(
+                        "JMX metrics query:{} failed to parse TabularData:{:?}",
+                        url,
+                        e
+                    );
+                    continue;
+                }
+            };
+            // flattern the result
+            for (key, mut tabular_row) in result.drain(..) {
+                let key = format!("{}_{}", row.name, key).replace(' ', "_");
+                for (col_name, item) in tabular_row.drain(..) {
+                    let field_name = format!("{}_{}", key, col_name).replace(' ', "_");
+                    match item {
+                        serde_json::Value::Null => {}
+                        serde_json::Value::Bool(value) => {
+                            query = query.add_field(field_name, value);
+                        }
+                        serde_json::Value::Number(value) => {
+                            if let Some(value) = value.as_i64() {
+                                query = query.add_field(field_name, value);
+                            } else if let Some(value) = value.as_f64() {
+                                query = query.add_field(field_name, value);
+                            }
+                        }
+                        serde_json::Value::String(value) => {
+                            query = query.add_field(field_name, value);
+                        }
+
+                        serde_json::Value::Array(_) => {}
+                        serde_json::Value::Object(_) => {}
+                    }
+                    // query = query.add_field(format!("{}.{}", key, col_name), item);
                 }
             }
         } else {
