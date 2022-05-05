@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+
+## [v4.2.4] - 2022-05-05
+
+### Changed
+ - Fixed the bug: when a query is timed out, the sleep time was not being reset due to u64 overflow.
+
 ## [v4.2.3] - 2022-04-07
 
 ### Added

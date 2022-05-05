@@ -178,8 +178,9 @@ pub async fn launch_twxquery_service(
             break;
         }
         let spent_time = SystemTime::now().duration_since(start_time).unwrap();
-        let sleep_time = scrap_interval * 1000 - spent_time.as_millis() as u64;
-        if sleep_time > 0 {
+        
+        if scrap_interval * 1000 > spent_time.as_millis() as u64 {
+            let sleep_time = scrap_interval * 1000 - spent_time.as_millis() as u64;
             log::info!("sleep {} seconds", sleep_time/1000);
             sleeping.store(true, Ordering::SeqCst);
             tokio::time::sleep(std::time::Duration::from_millis(sleep_time)).await;
