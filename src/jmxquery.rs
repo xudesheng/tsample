@@ -1,3 +1,4 @@
+use crate::spec::WriteSpec as WriteQuery;
 use crate::{
     payload::{MBeansAttributeInfo, QueryMBeansTree},
     tabular::parse_tabular_data,
@@ -6,7 +7,7 @@ use crate::{
 };
 use chrono::offset::Utc;
 use chrono::DateTime;
-use influxdb::{InfluxDbWriteable, Timestamp, WriteQuery};
+use influxdb::Timestamp;
 use lazy_static::lazy_static;
 use regex::Regex;
 use reqwest::{header::HeaderMap, Client};
@@ -230,10 +231,12 @@ async fn query_jmx_metrics(
 
     let system_time = SystemTime::now();
     let timestamp: DateTime<Utc> = system_time.into();
-    let mut query = Timestamp::Milliseconds(timestamp.timestamp_millis().try_into().unwrap())
-        .into_query(&subsystem.name)
-        // .add_tag("Provider", provider.to_string())
-        .add_tag("Platform", platform.to_string());
+    let mut query = WriteQuery::new(
+        Timestamp::Milliseconds(timestamp.timestamp_millis().try_into().unwrap()),
+        &subsystem.name,
+    )
+    // .add_tag("Provider", provider.to_string())
+    .add_tag("Platform", influxdb::Type::Text(platform.to_string()));
 
     // we can consume all rows here.
     log::debug!(
@@ -277,35 +280,35 @@ async fn query_jmx_metrics(
             match row.preview.parse::<bool>() {
                 Err(_) => continue,
                 Ok(value) => {
-                    query = query.add_field(row.name, value);
+                    query = query.add_field(row.name, influxdb::Type::Boolean(value));
                 }
             }
         } else if row.type_ == "int" || row.type_ == "java.lang.Integer" {
             match row.preview.parse::<i32>() {
                 Err(_) => continue,
                 Ok(value) => {
-                    query = query.add_field(row.name, value);
+                    query = query.add_field(row.name, influxdb::Type::SignedInteger(value as i64));
                 }
             }
         } else if row.type_ == "long" || row.type_ == "java.lang.Long" {
             match row.preview.parse::<i64>() {
                 Err(_) => continue,
                 Ok(value) => {
-                    query = query.add_field(row.name, value);
+                    query = query.add_field(row.name, influxdb::Type::SignedInteger(value));
                 }
             }
         } else if row.type_ == "float" || row.type_ == "java.lang.Float" {
             match row.preview.parse::<f32>() {
                 Err(_) => continue,
                 Ok(value) => {
-                    query = query.add_field(row.name, value);
+                    query = query.add_field(row.name, influxdb::Type::Float(value as f64));
                 }
             }
         } else if row.type_ == "double" || row.type_ == "java.lang.Double" {
             match row.preview.parse::<f64>() {
                 Err(_) => continue,
                 Ok(value) => {
-                    query = query.add_field(row.name, value);
+                    query = query.add_field(row.name, influxdb::Type::Float(value));
                 }
             }
         } else if row.type_ == "javax.management.openmbean.TabularData" {
@@ -328,17 +331,18 @@ async fn query_jmx_metrics(
                     match item {
                         serde_json::Value::Null => {}
                         serde_json::Value::Bool(value) => {
-                            query = query.add_field(field_name, value);
+                            query = query.add_field(field_name, influxdb::Type::Boolean(value));
                         }
                         serde_json::Value::Number(value) => {
                             if let Some(value) = value.as_i64() {
-                                query = query.add_field(field_name, value);
+                                query = query
+                                    .add_field(field_name, influxdb::Type::SignedInteger(value));
                             } else if let Some(value) = value.as_f64() {
-                                query = query.add_field(field_name, value);
+                                query = query.add_field(field_name, influxdb::Type::Float(value));
                             }
                         }
                         serde_json::Value::String(value) => {
-                            query = query.add_field(field_name, value);
+                            query = query.add_field(field_name, influxdb::Type::Text(value));
                         }
 
                         serde_json::Value::Array(_) => {}
@@ -349,7 +353,7 @@ async fn query_jmx_metrics(
             }
         } else {
             let value = row.preview.to_string();
-            query = query.add_field(row.name, value);
+            query = query.add_field(row.name, influxdb::Type::Text(value));
         }
     }
 
@@ -363,14 +367,17 @@ async fn query_jmx_metrics(
 
             if need_replace_subname && key == "sub_name" {
                 need_replace_subname = false;
-                query = query.add_tag(key.clone(), new_sub_name.clone());
+                query = query.add_tag(key.clone(), influxdb::Type::Text(new_sub_name.clone()));
                 continue;
             }
-            query = query.add_tag(key.clone(), value.clone());
+            query = query.add_tag(key.clone(), influxdb::Type::Text(value.clone()));
         }
     }
 
-    query = query.add_field("ResponseTime", response_time as i64);
+    query = query.add_field(
+        "ResponseTime",
+        influxdb::Type::SignedInteger(response_time as i64),
+    );
     result.push(query);
 
     Ok(result)

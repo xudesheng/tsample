@@ -141,3 +141,16 @@ export_to_file:
 
   # enable file export, default is false
   enabled: false
+
+export_to_prometheus:
+  # enable prometheus export, default is false
+  enabled: false
+  # default prometheus service port is 19090
+  port: 19090
+
+  # endpoint for prometheus metrics, default is metrics
+  endpoint: "metrics"
+
+  # response time will be exported as a histogram. the default bucket bin (ms):
+  response_time_bucket_bin: [100.0,400.0,1200.0,4800.0,9600.0,19200.0]
+

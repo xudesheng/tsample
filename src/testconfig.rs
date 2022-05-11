@@ -21,6 +21,34 @@ impl Default for Owner {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ExportToPrometheus {
+    pub enabled: bool,
+
+    #[serde(default = "default_prometheus_port")]
+    pub port: u16,
+
+    #[serde(default = "default_endpoint")]
+    pub endpoint: String,
+    // #[serde(default = "default_counter_list")]
+    // pub counter_list: Vec<String>,
+    #[serde(default = "default_response_time_bucket_bin")]
+    pub response_time_bucket_bin: Vec<f64>,
+}
+
+fn default_prometheus_port() -> u16 {
+    19090
+}
+fn default_endpoint() -> String {
+    "metrics".to_string()
+}
+fn default_response_time_bucket_bin() -> Vec<f64> {
+    vec![100.0, 400.0, 1200.0, 4800.0, 9600.0, 19200.0]
+}
+// fn default_counter_list() -> Vec<String> {
+//     vec![]
+// }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ExportToFile {
     pub directory: String,
     pub auto_create_folder: bool,
@@ -244,6 +272,7 @@ pub struct TestConfig {
     pub thingworx_servers: Vec<ThingworxServer>,
     pub export_to_influxdb: ExportToInfluxDB,
     pub export_to_file: Option<ExportToFile>,
+    pub export_to_prometheus: Option<ExportToPrometheus>,
 }
 
 fn default_query_time_out() -> u64 {

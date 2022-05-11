@@ -37,6 +37,9 @@ anyhow = "1.0"
 serde_yaml = "0.8"
 evmap = "10.0.2"
 
+prometheus =  { version = "0.13", features = ["process"] }
+warp = { version = "0.3", features = ["tls"]}
+
 #[profile.release]
 #strip = true
 #opt-level = "z"
