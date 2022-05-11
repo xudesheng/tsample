@@ -59,7 +59,7 @@ pub async fn prometheus_thread(
                         if field.0 == "ResponseTime" {
                             response_time
                                 .with_label_values(&[&write_spec.measurement])
-                                .observe(value);
+                                .observe(value / 1000000.0); // convert to milliseconds from nanoseconds
                         } else {
                             let map = gauge_map.read().expect("Read Lock poisoned.");
                             let mut label_values: Vec<&str> = vec![];
