@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+## [v4.3.0] - 2022-05-011
+
+### Added
+ - Support to expose metrics in Prometheus format (http://localhost:19090/metrics).
+
 ## [v4.2.4] - 2022-05-05
 
 ### Changed
