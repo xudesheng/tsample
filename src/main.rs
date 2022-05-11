@@ -2,6 +2,7 @@ mod app;
 mod influx;
 mod jmxquery;
 mod payload;
+mod prometheus;
 mod spec;
 mod tabular;
 mod testconfig;

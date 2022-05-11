@@ -8,7 +8,7 @@ use crate::spec::WriteSpec;
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use influxdb::WriteQuery;
 use influxdb::{Client, InfluxDbWriteable};
-use tokio::sync::mpsc::Receiver;
+use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::testconfig::{ExportToFile, ExportToInfluxDB};
 
@@ -16,6 +16,7 @@ pub async fn launch_influx_service(
     influx_config: &ExportToInfluxDB,
     mut receiver: Receiver<Vec<WriteSpec>>,
     file_config: Option<ExportToFile>,
+    prom_sender: Option<Sender<Vec<WriteSpec>>>,
 ) -> anyhow::Result<()> {
     let enabled = influx_config.enabled;
     log::info!("influxdb service enabled:{}", enabled);
@@ -60,9 +61,17 @@ pub async fn launch_influx_service(
     loop {
         match receiver.recv().await {
             None => break,
-            Some(write_spec) => {
+            Some(write_specs) => {
+                if let Some(ref sender) = prom_sender {
+                    match sender.send(write_specs.clone()).await {
+                        Ok(_) => {}
+                        Err(e) => {
+                            log::error!("prometheus sender error:{:?}", e);
+                        }
+                    }
+                }
                 let mut write_query = vec![];
-                for spec in write_spec {
+                for spec in write_specs {
                     let WriteSpec {
                         fields,
                         tags,

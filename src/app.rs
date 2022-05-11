@@ -1,8 +1,10 @@
 use std::sync::{atomic::AtomicBool, Arc};
 
-use crate::testconfig::TestConfig;
-use crate::{influx::launch_influx_service, twxquery::launch_twxquery_service};
-use tokio::sync::mpsc::channel;
+use crate::{
+    influx::launch_influx_service, prometheus::prometheus_thread, twxquery::launch_twxquery_service,
+};
+use crate::{spec::WriteSpec, testconfig::TestConfig};
+use tokio::sync::mpsc::{channel, Sender};
 
 pub async fn run_app(
     tc: TestConfig,
@@ -17,11 +19,33 @@ pub async fn run_app(
 
     let (sender, receiver) = channel(1000);
 
+    let prometheus_sender: Option<Sender<Vec<WriteSpec>>> =
+        if let Some(ref prometheus_config) = tc.export_to_prometheus {
+            let etp = prometheus_config.clone();
+
+            let enabled = etp.enabled;
+            if enabled {
+                let (prom_sender, prom_receiver) = channel(1000);
+                tokio::spawn(async move { prometheus_thread(etp, prom_receiver).await });
+                Some(prom_sender)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
     // launch influx service to store data first.
     let export_to_influxdb = tc.export_to_influxdb.clone();
     let export_to_file = tc.export_to_file.clone();
     let export_to_influxdb_task = tokio::spawn(async move {
-        match launch_influx_service(&export_to_influxdb, receiver, export_to_file).await {
+        match launch_influx_service(
+            &export_to_influxdb,
+            receiver,
+            export_to_file,
+            prometheus_sender,
+        )
+        .await
+        {
             Ok(_) => {
                 log::info!("influxdb service finished smoothly");
             }
