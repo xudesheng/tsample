@@ -4,16 +4,17 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::spec::WriteSpec;
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
-use influxdb::Client;
 use influxdb::WriteQuery;
+use influxdb::{Client, InfluxDbWriteable};
 use tokio::sync::mpsc::Receiver;
 
 use crate::testconfig::{ExportToFile, ExportToInfluxDB};
 
 pub async fn launch_influx_service(
     influx_config: &ExportToInfluxDB,
-    mut receiver: Receiver<Vec<WriteQuery>>,
+    mut receiver: Receiver<Vec<WriteSpec>>,
     file_config: Option<ExportToFile>,
 ) -> anyhow::Result<()> {
     let enabled = influx_config.enabled;
@@ -59,7 +60,26 @@ pub async fn launch_influx_service(
     loop {
         match receiver.recv().await {
             None => break,
-            Some(write_query) => {
+            Some(write_spec) => {
+                let mut write_query = vec![];
+                for spec in write_spec {
+                    let WriteSpec {
+                        fields,
+                        tags,
+                        measurement,
+                        timestamp,
+                    } = spec;
+                    let mut one_query = timestamp.into_query(measurement);
+
+                    for field in fields {
+                        one_query = one_query.add_field(field.0, field.1);
+                    }
+                    for tag in tags {
+                        one_query = one_query.add_tag(tag.0, tag.1);
+                    }
+                    write_query.push(one_query);
+                }
+
                 if let Some(ref sender) = sender {
                     // 99.99% chance InfluxDB will be enabled, so, doesn't matter to clone the data.
                     let file_query = write_query.clone();

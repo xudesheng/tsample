@@ -9,13 +9,14 @@ use crate::{
 };
 use chrono::offset::Utc;
 use chrono::DateTime;
-use influxdb::{WriteQuery, Timestamp, InfluxDbWriteable};
+use influxdb::{/*WriteQuery,*/ Timestamp};
 use reqwest::{
     header::{HeaderMap, HeaderValue, CONTENT_TYPE},
     Client,
 };
 use serde_json::Value as JsonValue;
 use tokio::sync::mpsc::Sender;
+use crate::spec::WriteSpec as WriteQuery;
 
 pub async fn launch_twxquery_service(
     tc: TestConfig,
@@ -455,9 +456,9 @@ pub async fn query_subsystem_metrics(
         if value_map.is_empty() {
             continue;
         }
-        let mut query = Timestamp::Milliseconds(timestamp.timestamp_millis().try_into().unwrap()).into_query(&subsystem.name)
-            .add_tag("Provider", provider.to_string())
-            .add_tag("Platform", platform.to_string()) 
+        let mut query =WriteQuery::new( Timestamp::Milliseconds(timestamp.timestamp_millis().try_into().unwrap()),&subsystem.name)
+            .add_tag("Provider", influxdb::Type::Text(provider.to_string()))
+            .add_tag("Platform", influxdb::Type::Text(platform.to_string())) 
             ;
         if let Some(ref additional_tags) = additional_tags {
             // Metrics from all connection servers will be in a dummy subsystem 'ConnectionServer'.
@@ -465,7 +466,7 @@ pub async fn query_subsystem_metrics(
             for (key, value) in additional_tags {
                 // this can be optimized in future to avoid copy.
                 // it should directly consume the hashmap.
-                query = query.add_tag(key.clone(), value.clone());
+                query = query.add_tag(key.clone(), influxdb::Type::Text(value.clone()));
             }
         }
         for (key, value) in value_map {
@@ -473,32 +474,32 @@ pub async fn query_subsystem_metrics(
                 JsonValue::Number(num)=>{
                     match num.as_f64() {
                         Some(num) =>{
-                            query = query.add_field(key, num);
+                            query = query.add_field(key, influxdb::Type::Float(num));
                             
                         },
                         None=>{
-                            query = query.add_field(key, 0.0_f64);
+                            query = query.add_field(key, influxdb::Type::Float(0.0_f64));
                             
                         },
                     }
                 }
                 JsonValue::Null => {}
                 JsonValue::Bool(boolvalue) => {
-                    query = query.add_field(key, *boolvalue);
+                    query = query.add_field(key, influxdb::Type::Boolean(*boolvalue));
                     }
                 JsonValue::String(strvalue) => {
-                    query = query.add_field(key, strvalue.to_string());
+                    query = query.add_field(key, influxdb::Type::Text(strvalue.to_string()));
                     }
                 JsonValue::Array(value) => {
                     match serde_json::to_string(value){
-                        Ok(strvalue)=>{query = query.add_field(key, strvalue);},
+                        Ok(strvalue)=>{query = query.add_field(key, influxdb::Type::Text(strvalue));},
                         Err(e)=>log::error!("Failed to convert array result to string:key:{},value:{:?},error:{:?}",key,value,e),
                     }
                     
                 }
                 JsonValue::Object(value) => {
                     match serde_json::to_string(value){
-                        Ok(strvalue)=>{query = query.add_field(key, strvalue);},
+                        Ok(strvalue)=>{query = query.add_field(key, influxdb::Type::Text(strvalue));},
                         Err(e)=>log::error!("Failed to convert object map result to string:key:{},value:{:?},error:{:?}",key,value,e),
                     }
                 }
@@ -506,7 +507,7 @@ pub async fn query_subsystem_metrics(
             
         }
 
-        query = query.add_field("ResponseTime", response_time as i64);
+        query = query.add_field("ResponseTime", influxdb::Type::SignedInteger(response_time as i64));
         result.push(query);
     }
     Ok(result)
