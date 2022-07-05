@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
-## [v4.3.2] - 2022-07-05
+## [v4.3.3] - 2022-07-05
 
 ### Changed
  - Update cargo lock in order to remove the dependency on `smallvec` old version
