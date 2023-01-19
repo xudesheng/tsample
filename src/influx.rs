@@ -161,7 +161,10 @@ pub async fn launch_file_service(
 }
 
 fn get_datetime(now: DateTime<Utc>) -> u32 {
-    let newtime = NaiveDate::from_ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0);
+    let newtime = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+        .unwrap()
+        .and_hms_opt(0, 0, 0)
+        .unwrap();
     newtime.timestamp() as u32
 }
 

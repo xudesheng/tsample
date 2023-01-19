@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+## [v4.3.4] - 2023-01-19
+ - Update build cache in order to solve the issue: https://github.com/rustls/rustls/issues/1012
+
 ### Added
 ## [v4.3.3] - 2022-07-05
 
