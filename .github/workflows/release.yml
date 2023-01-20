@@ -205,9 +205,9 @@ jobs:
       - name: Install 7Zip PowerShell Module
         shell: powershell
         run: Install-Module 7Zip4PowerShell -Force -Verbose
-      - uses: taiki-e/github-actions/install-rust@main
+      - uses: taiki-e/install-action@v2
         with:
-          toolchain: stable
+          tool: cargo-hack
       - name: build and check
         run: |
           cargo build --release
@@ -247,9 +247,9 @@ jobs:
       - name: Install dependencies (MacOS)
         run: |
           brew install openssl
-      - uses: taiki-e/github-actions/install-rust@main
+      - uses: taiki-e/install-action@v2
         with:
-          toolchain: stable
+          tool: cargo-hack
       - name: build and check result
         run: |
           cargo build --release
