@@ -74,15 +74,20 @@ fn parse_tabular_item_type(items_content: &str) -> HashMap<&str, &str> {
     for item_type in item_type_iter {
         let item_name = item_type.get(1);
         let item_type = item_type.get(2);
-        match item_name {
-            Some(item_name) => match item_type {
-                Some(item_type) => {
-                    result.insert(item_name.as_str(), item_type.as_str());
-                }
-                None => {}
-            },
-            None => {}
+        if let Some(item_name) = item_name {
+            if let Some(item_type) = item_type {
+                result.insert(item_name.as_str(), item_type.as_str());
+            }
         }
+        // match item_name {
+        //     Some(item_name) => match item_type {
+        //         Some(item_type) => {
+        //             result.insert(item_name.as_str(), item_type.as_str());
+        //         }
+        //         None => {}
+        //     },
+        //     None => {}
+        // }
     }
 
     result

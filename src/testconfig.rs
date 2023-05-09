@@ -158,17 +158,6 @@ fn default_subsystem_enabled() -> bool {
     true
 }
 
-impl Default for SubSystem {
-    fn default() -> Self {
-        SubSystem {
-            name: String::from(""),
-            enabled: false,
-            options: None,
-            split_desc_asprefix: false,
-            sanitize: false,
-        }
-    }
-}
 // impl SubSystem {
 //     pub fn new(name: &str) -> Self {
 //         SubSystem {

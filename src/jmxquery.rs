@@ -268,12 +268,7 @@ async fn query_jmx_metrics(
         if let Some(ref name_alternative) = name_alternative {
             if name_alternative == &row.name {
                 new_sub_name = format!("sub_{}", row.preview);
-                new_sub_name = new_sub_name
-                    .replace(' ', "_")
-                    .replace('.', "_")
-                    .replace(',', "_")
-                    .replace('[', "_")
-                    .replace(']', "_");
+                new_sub_name = new_sub_name.replace([' ', '.', ',', '[', ']'], "_");
             }
         }
         if row.type_ == "boolean" {

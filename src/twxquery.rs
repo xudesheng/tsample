@@ -11,7 +11,7 @@ use chrono::offset::Utc;
 use chrono::DateTime;
 use influxdb::{/*WriteQuery,*/ Timestamp};
 use reqwest::{
-    header::{HeaderMap, HeaderValue, CONTENT_TYPE},
+    header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION},
     Client,
 };
 use serde_json::Value as JsonValue;
@@ -68,7 +68,7 @@ pub async fn launch_twxquery_service(
         });
     }
 
-    let scrap_interval = tc.scrap_interval as u64;
+    let scrap_interval = tc.scrap_interval;
     let query_timeout = tc.query_time_out; //default should be 20 seconds
     log::info!("scrap interval is {} seconds, query timeout is:{} seconds.", scrap_interval, query_timeout);
     while running.load(Ordering::SeqCst) {
@@ -173,7 +173,7 @@ pub async fn launch_twxquery_service(
             }
         }
         for task in tasks {
-            let _ = task.await?;
+            task.await?;
         }
         if !running.load(Ordering::SeqCst) {
             break;
@@ -365,7 +365,13 @@ pub fn construct_headers(app_key: &str) -> HeaderMap {
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     // impossible to fail here
-    headers.insert("appKey", HeaderValue::from_str(app_key).unwrap());
+    if app_key.contains(' ') {
+        //Oauth token, like "Bearer xxxxx"
+        headers.insert(AUTHORIZATION, HeaderValue::from_str(app_key).unwrap());
+    }else{
+        headers.insert("appKey", HeaderValue::from_str(app_key).unwrap());
+    }
+    
     headers.insert("Accept", HeaderValue::from_static("application/json"));
 
     headers
@@ -423,17 +429,17 @@ pub async fn query_subsystem_metrics(
         if row.value.is_none() {
             continue;
         }
-        let row_desc = row.description.unwrap_or_else(|| "".to_string());
+        let row_desc = row.description.unwrap_or_default();
         let row_value = row.value.unwrap(); //it's safe
 
         // Persistent Provider needs to be handled differently
         let (provider, _description) = match row_desc.find(": ") {
             Some(start) => (
-                (&row_desc[0..start]).to_string(),
-                (&row_desc[start + 2..]).to_string(),
+                row_desc[0..start].to_string(),
+                row_desc[start + 2..].to_string(),
             ),
             // common metrics will use 'default' value for provider
-            None => ("Default".to_string(), (&row_desc).to_string()),
+            None => ("Default".to_string(), row_desc.to_string()),
         };
         if !metric_value_map.contains_key(&provider) {
             let value_map: BTreeMap<String, JsonValue> = BTreeMap::new();
